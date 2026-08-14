@@ -92,7 +92,7 @@ class VPNManager {
             
             // 配置VPN
             let protocolConfig = NETunnelProviderProtocol()
-            protocolConfig.providerBundleIdentifier = "top.wherewego.vntApp.tunnel" // Extension Bundle ID
+            protocolConfig.providerBundleIdentifier = "top.daylight.vnt.www.tunnel" // Extension Bundle ID
             protocolConfig.serverAddress = serverAddress
             
             // 传递配置选项
@@ -147,7 +147,7 @@ class VPNManager {
     
     func connectDefaultConfig(completion: @escaping (Error?) -> Void) {
         // 从SharedPreferences读取默认配置key
-        guard let defaults = UserDefaults(suiteName: "group.top.wherewego.vntApp"),
+        guard let defaults = UserDefaults(suiteName: "group.top.daylight.vnt.www"),
               let defaultKey = defaults.string(forKey: "flutter.default-key"),
               !defaultKey.isEmpty else {
             let error = NSError(domain: "VPNManager", code: -1, 
@@ -259,7 +259,7 @@ class VPNManager {
     // MARK: - Configuration Storage
     
     func saveConfiguration(serverAddress: String, token: String) {
-        if let defaults = UserDefaults(suiteName: "group.top.wherewego.vntApp") {
+        if let defaults = UserDefaults(suiteName: "group.top.daylight.vnt.www") {
             defaults.set(serverAddress, forKey: "serverAddress")
             defaults.set(token, forKey: "token")
             defaults.set(UIDevice.current.name, forKey: "deviceName")
@@ -269,7 +269,7 @@ class VPNManager {
     }
     
     func loadConfiguration() -> (serverAddress: String?, token: String?) {
-        if let defaults = UserDefaults(suiteName: "group.top.wherewego.vntApp") {
+        if let defaults = UserDefaults(suiteName: "group.top.daylight.vnt.www") {
             let serverAddress = defaults.string(forKey: "serverAddress")
             let token = defaults.string(forKey: "token")
             return (serverAddress, token)
@@ -280,7 +280,7 @@ class VPNManager {
     // MARK: - Widget Support
     
     private func updateWidgetStatus(connected: Bool, status: String) {
-        if let defaults = UserDefaults(suiteName: "group.top.wherewego.vntApp") {
+        if let defaults = UserDefaults(suiteName: "group.top.daylight.vnt.www") {
             defaults.set(connected, forKey: "vpn_connected")
             defaults.set(status, forKey: "vpn_status")
             defaults.synchronize()
@@ -293,7 +293,7 @@ class VPNManager {
     }
     
     func setUpdateAvailable(message: String) {
-        if let defaults = UserDefaults(suiteName: "group.top.wherewego.vntApp") {
+        if let defaults = UserDefaults(suiteName: "group.top.daylight.vnt.www") {
             defaults.set(true, forKey: "has_update")
             defaults.set(message, forKey: "update_message")
             defaults.synchronize()
@@ -306,7 +306,7 @@ class VPNManager {
     }
     
     func clearUpdateNotification() {
-        if let defaults = UserDefaults(suiteName: "group.top.wherewego.vntApp") {
+        if let defaults = UserDefaults(suiteName: "group.top.daylight.vnt.www") {
             defaults.set(false, forKey: "has_update")
             defaults.removeObject(forKey: "update_message")
             defaults.synchronize()
@@ -320,7 +320,7 @@ class VPNManager {
     // MARK: - Shortcuts Support
     
     func checkShortcutRequests() {
-        guard let defaults = UserDefaults(suiteName: "group.top.wherewego.vntApp") else { return }
+        guard let defaults = UserDefaults(suiteName: "group.top.daylight.vnt.www") else { return }
         
         // 检查连接请求
         if defaults.bool(forKey: "shortcut_connect_request") {

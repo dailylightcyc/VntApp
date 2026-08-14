@@ -8,7 +8,7 @@
 PRODUCT_NAME = vnt_app
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = top.wherewego.vntApp
+PRODUCT_BUNDLE_IDENTIFIER = top.daylight.vnt.www
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2024 top.wherewego. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 top.daylight. All rights reserved.

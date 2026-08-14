@@ -9,13 +9,20 @@ crate-type = ["staticlib", "cdylib"]
 [dependencies]
 
 serde = { version = "1.0", features = ["derive"] }
-flutter_rust_bridge = "=2.1.0"
-vnt = { git = "https://github.com/lmq8267/vnt-Redir.git", branch = "main", features = ["ring-cipher", "wss"] }
-anyhow = "1.0.82"
-tokio = { version = "1.37.0", features = ["full"] }
+flutter_rust_bridge = "=2.12.0"
+vnt = { git = "https://github.com/lmq8267/vnt-Redir.git", rev = "cce3e3a7de0bd9b3c832fabff847637e0f9c0483", features = ["ring-cipher", "wss"] }
+anyhow = "1.0.99"
+tokio = { version = "1.47.1", features = ["full"] }
 
-log = "0.4.17"
-log4rs = "=1.2.0"
+log = "0.4.27"
+log4rs = "1.4.0"
+
+# VNT 的 Linux 运行需要 2.0.3；仓库内的兼容补丁只在 Android 上使
+# from_fd 返回 Result，不改变桌面端已验证的 TUN 读写行为。
+tun-rs = { version = "=2.0.3", features = ["experimental"] }
+
+[patch.crates-io]
+tun-rs = { path = "../third_party/tun-rs" }
 
 [target.'cfg(windows)'.build-dependencies]
 thunk-rs = { version = "0.3.3", features = ["win7"] }

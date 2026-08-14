@@ -1,8 +1,9 @@
 # Cargokit 配置文件
-# 强制使用 Rust 1.77.2 版本（vnt的内置IP代理功能在 rust 1.77 以上版本无法使用）
+# Flutter-Rust Bridge 2.12 及其依赖使用 Rust 2024 edition，因此统一采用
+# 当前 stable 工具链，避免命令行检查和 Flutter 打包使用两套 Cargo。
 
 cargo:
   release:
-    toolchain: "1.77.2"
+    toolchain: "stable"
   debug:
-    toolchain: "1.77.2"
+    toolchain: "stable"

@@ -39,7 +39,7 @@ import WidgetKit
   }
   
   private func setupVPNMethodChannel(controller: FlutterViewController) {
-    let channel = FlutterMethodChannel(name: "top.wherewego.vntApp/vpn", binaryMessenger: controller.binaryMessenger)
+    let channel = FlutterMethodChannel(name: "top.daylight.vnt.www/vpn", binaryMessenger: controller.binaryMessenger)
     
     channel.setMethodCallHandler { [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
       switch call.method {

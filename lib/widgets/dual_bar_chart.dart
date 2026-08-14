@@ -9,10 +9,7 @@ import 'legend_widget.dart';
 class StatisticsChart extends StatefulWidget {
   final VntBox vntBox;
 
-  const StatisticsChart({
-    super.key,
-    required this.vntBox,
-  });
+  const StatisticsChart({super.key, required this.vntBox});
   final Color leftBarColor = const Color.fromARGB(255, 253, 104, 58);
   final Color rightBarColor = const Color.fromARGB(255, 59, 255, 73);
   @override
@@ -109,55 +106,63 @@ class StatisticsChartState extends State<StatisticsChart> {
   }
 
   Widget _chartB() {
-    return LayoutBuilder(builder: (context, constraints) {
-      return SizedBox(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
           width: constraints.maxWidth,
           child: AspectRatio(
-              aspectRatio: 1,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        LegendsListWidget(
-                          legends: [
-                            Legend('上传', widget.leftBarColor),
-                            Legend('下载', widget.rightBarColor),
-                          ],
+            aspectRatio: 1,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      LegendsListWidget(
+                        legends: [
+                          Legend('上传', widget.leftBarColor),
+                          Legend('下载', widget.rightBarColor),
+                        ],
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        'IP: $ip',
+                        style: TextStyle(
+                          color: const Color(0xff77839a),
+                          fontSize: context.fontMedium,
                         ),
-                        const SizedBox(
-                          width: 16,
-                        ),
-                        Text(
-                          'IP: $ip',
-                          style: TextStyle(
-                              color: const Color(0xff77839a), fontSize: context.fontMedium),
-                        ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '总上传: $ipUpload',
+                    style: TextStyle(
+                      color: const Color(0xff77839a),
+                      fontSize: context.fontMedium,
                     ),
-                    Text(
-                      '总上传: $ipUpload',
-                      style: TextStyle(
-                          color: const Color(0xff77839a), fontSize: context.fontMedium),
+                  ),
+                  Text(
+                    '总下载: $ipDownload',
+                    style: TextStyle(
+                      color: const Color(0xff77839a),
+                      fontSize: context.fontMedium,
                     ),
-                    Text(
-                      '总下载: $ipDownload',
-                      style: TextStyle(
-                          color: const Color(0xff77839a), fontSize: context.fontMedium),
+                  ),
+                  const SizedBox(height: 38),
+                  Expanded(
+                    child: LineChart(
+                      mainData(),
+                      duration: const Duration(milliseconds: 0),
                     ),
-                    const SizedBox(
-                      height: 38,
-                    ),
-                    Expanded(
-                      child: LineChart(mainData(),
-                          duration: const Duration(milliseconds: 0)),
-                    ),
-                  ],
-                ),
-              )));
-    });
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _scrollCartA() {
@@ -195,22 +200,24 @@ class StatisticsChartState extends State<StatisticsChart> {
                 Legend('下载', widget.rightBarColor),
               ],
             ),
-            const SizedBox(
-              width: 16,
-            ),
+            const SizedBox(width: 16),
           ],
         ),
         Text(
           '总上传: $uploadTotal',
-          style: TextStyle(color: const Color(0xff77839a), fontSize: context.fontMedium),
+          style: TextStyle(
+            color: const Color(0xff77839a),
+            fontSize: context.fontMedium,
+          ),
         ),
         Text(
           '总下载: $downloadTotal',
-          style: TextStyle(color: const Color(0xff77839a), fontSize: context.fontMedium),
+          style: TextStyle(
+            color: const Color(0xff77839a),
+            fontSize: context.fontMedium,
+          ),
         ),
-        const SizedBox(
-          height: 38,
-        ),
+        const SizedBox(height: 38),
         Expanded(
           child: BarChart(
             BarChartData(
@@ -257,9 +264,7 @@ class StatisticsChartState extends State<StatisticsChart> {
                   ),
                 ),
               ),
-              borderData: FlBorderData(
-                show: false,
-              ),
+              borderData: FlBorderData(show: false),
               barGroups: barChartDataList.asMap().entries.map((item) {
                 var leftY = item.value.$2.toDouble();
                 var rightY = item.value.$3.toDouble();
@@ -270,9 +275,7 @@ class StatisticsChartState extends State<StatisticsChart> {
             swapAnimationDuration: const Duration(milliseconds: 0),
           ),
         ),
-        const SizedBox(
-          height: 12,
-        ),
+        const SizedBox(height: 12),
       ],
     );
   }
@@ -293,7 +296,7 @@ class StatisticsChartState extends State<StatisticsChart> {
     );
 
     return SideTitleWidget(
-      axisSide: meta.axisSide,
+      meta: meta,
       space: 16, //margin top
       child: text,
     );
@@ -304,16 +307,8 @@ class StatisticsChartState extends State<StatisticsChart> {
       barsSpace: 4,
       x: x,
       barRods: [
-        BarChartRodData(
-          toY: y1,
-          color: widget.leftBarColor,
-          width: width,
-        ),
-        BarChartRodData(
-          toY: y2,
-          color: widget.rightBarColor,
-          width: width,
-        ),
+        BarChartRodData(toY: y1, color: widget.leftBarColor, width: width),
+        BarChartRodData(toY: y2, color: widget.rightBarColor, width: width),
       ],
     );
   }
@@ -338,17 +333,9 @@ class StatisticsChartState extends State<StatisticsChart> {
       // ),
       titlesData: const FlTitlesData(
         show: true,
-        rightTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-        topTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: false,
-          ),
-        ),
+        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
         // leftTitles: AxisTitles(
         //   sideTitles: SideTitles(
         //     showTitles: true,
@@ -375,12 +362,8 @@ class StatisticsChartState extends State<StatisticsChart> {
           // isCurved: true,
           barWidth: 2,
           isStrokeCapRound: true,
-          dotData: const FlDotData(
-            show: false,
-          ),
-          belowBarData: BarAreaData(
-            show: true,
-          ),
+          dotData: const FlDotData(show: false),
+          belowBarData: BarAreaData(show: true),
         ),
         LineChartBarData(
           color: widget.rightBarColor,
@@ -390,12 +373,8 @@ class StatisticsChartState extends State<StatisticsChart> {
           // isCurved: true,
           barWidth: 2,
           isStrokeCapRound: true,
-          dotData: const FlDotData(
-            show: false,
-          ),
-          belowBarData: BarAreaData(
-            show: true,
-          ),
+          dotData: const FlDotData(show: false),
+          belowBarData: BarAreaData(show: true),
         ),
       ],
     );

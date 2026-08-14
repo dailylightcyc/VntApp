@@ -176,7 +176,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
   String _deviceConnectionLabel(RustPeerClientInfo device, RustRoute? route) {
     if (_isGatewayIp(device.virtualIp)) return '服务器';
-    if (_isDeviceOnline(device.status) && _hasPasswordMismatch(device)) return '参数不匹配';
+    if (_isDeviceOnline(device.status) && _hasPasswordMismatch(device))
+      return '参数不匹配';
     if (route == null || route.rt <= 0 || route.rt >= 9999) return '未连通';
     return _formatRouteLabel(route.natTraversalType);
   }
@@ -258,7 +259,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // 处理连接操作
   Future<void> _handleConnect() async {
-    debugPrint('_handleConnect called, defaultConfigKey: $_defaultConfigKey, defaultConfigName: $_defaultConfigName');
+    debugPrint(
+      '_handleConnect called, defaultConfigKey: $_defaultConfigKey, defaultConfigName: $_defaultConfigName',
+    );
     if (_defaultConfigKey.isNotEmpty) {
       // 有默认配置，直接连接
       debugPrint('Has default config, calling onConnect');
@@ -320,7 +323,7 @@ class _DashboardPageState extends State<DashboardPage> {
         // 计算速率（当前流量 - 上次流量）/ 时间间隔
         // 时间间隔是2秒（定时器周期）
         if (!_isFirstUpdate) {
-          double upSpeed = (currentUpBytes - _lastUpBytes) / 2.0;  // 字节/秒
+          double upSpeed = (currentUpBytes - _lastUpBytes) / 2.0; // 字节/秒
           double downSpeed = (currentDownBytes - _lastDownBytes) / 2.0;
 
           // 如果速率为负（可能是重启或重置），设为0
@@ -364,7 +367,9 @@ class _DashboardPageState extends State<DashboardPage> {
             maxUpSpeed = _uploadSpeedHistory.reduce((a, b) => a > b ? a : b);
           }
           if (_downloadSpeedHistory.isNotEmpty) {
-            maxDownSpeed = _downloadSpeedHistory.reduce((a, b) => a > b ? a : b);
+            maxDownSpeed = _downloadSpeedHistory.reduce(
+              (a, b) => a > b ? a : b,
+            );
           }
         } else {
           _isFirstUpdate = false;
@@ -388,7 +393,9 @@ class _DashboardPageState extends State<DashboardPage> {
           }
 
           // 获取协议类型
-          protocol = config.protocol.isNotEmpty ? config.protocol.toUpperCase() : 'UDP';
+          protocol = config.protocol.isNotEmpty
+              ? config.protocol.toUpperCase()
+              : 'UDP';
 
           // 获取用户配置的服务器地址（而不是解析后的地址）
           relayServer = config.serverAddress;
@@ -423,14 +430,17 @@ class _DashboardPageState extends State<DashboardPage> {
           bool shouldRecord = true;
 
           // route.rt > 0 且 < 9999 表示连通，0 或 9999 表示不通
-          if (gatewayRoute != null && gatewayRoute.rt > 0 && gatewayRoute.rt < 9999) {
+          if (gatewayRoute != null &&
+              gatewayRoute.rt > 0 &&
+              gatewayRoute.rt < 9999) {
             isConnected = true;
             // 使用网关的延迟作为平均延迟（如果没有其他设备）
             if (latencyCount == 0) {
               totalLatency = gatewayRoute.rt;
               latencyCount = 1;
             }
-          } else if (gatewayRoute != null && (gatewayRoute.rt == 0 || gatewayRoute.rt == 9999)) {
+          } else if (gatewayRoute != null &&
+              (gatewayRoute.rt == 0 || gatewayRoute.rt == 9999)) {
             // 前10次出现0或9999时不纳入统计（连接初始化阶段）
             if (_connectivityCheckCount < 10) {
               shouldRecord = false;
@@ -458,12 +468,16 @@ class _DashboardPageState extends State<DashboardPage> {
       }
     }
 
-    int avgLatency = latencyCount > 0 ? (totalLatency / latencyCount).round() : 0;
+    int avgLatency = latencyCount > 0
+        ? (totalLatency / latencyCount).round()
+        : 0;
 
     // 计算丢包率：(不通次数 / 总次数) * 100
     double packetLoss = 0.0;
     if (_gatewayConnectivityHistory.isNotEmpty) {
-      int failedCount = _gatewayConnectivityHistory.where((connected) => !connected).length;
+      int failedCount = _gatewayConnectivityHistory
+          .where((connected) => !connected)
+          .length;
       packetLoss = (failedCount / _gatewayConnectivityHistory.length) * 100;
     }
 
@@ -569,7 +583,9 @@ class _DashboardPageState extends State<DashboardPage> {
           color: primaryColor,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: EdgeInsets.all(isWideScreen ? context.spacingXLarge : context.spacingMedium),
+            padding: EdgeInsets.all(
+              isWideScreen ? context.spacingXLarge : context.spacingMedium,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -659,7 +675,9 @@ class _DashboardPageState extends State<DashboardPage> {
         ? colorScheme.onPrimaryContainer
         : colorScheme.onSurfaceVariant;
     return InkWell(
-      onTap: hasConnection ? () => _showConnectionDialog(isDark) : _handleConnect,
+      onTap: hasConnection
+          ? () => _showConnectionDialog(isDark)
+          : _handleConnect,
       borderRadius: BorderRadius.circular(context.radius(24)),
       child: Container(
         width: double.infinity,
@@ -678,7 +696,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 borderRadius: BorderRadius.circular(context.radius(18)),
               ),
               child: Icon(
-                hasConnection ? Icons.check_circle_outline : Icons.cloud_off_outlined,
+                hasConnection
+                    ? Icons.check_circle_outline
+                    : Icons.cloud_off_outlined,
                 color: contentColor,
                 size: context.iconSize(32),
               ),
@@ -700,7 +720,9 @@ class _DashboardPageState extends State<DashboardPage> {
                   Text(
                     hasConnection
                         ? (_configName.isNotEmpty ? _configName : '未知配置名')
-                        : (_defaultConfigName.isNotEmpty ? '$_defaultConfigName (点击连接)' : '点击新建配置'),
+                        : (_defaultConfigName.isNotEmpty
+                              ? '$_defaultConfigName (点击连接)'
+                              : '点击新建配置'),
                     style: TextStyle(
                       fontSize: context.sp(16),
                       color: contentColor.withOpacity(0.82),
@@ -710,7 +732,11 @@ class _DashboardPageState extends State<DashboardPage> {
                     SizedBox(height: context.spacing(8)),
                     Row(
                       children: [
-                        Icon(Icons.link, color: contentColor.withOpacity(0.82), size: context.iconSize(16)),
+                        Icon(
+                          Icons.link,
+                          color: contentColor.withOpacity(0.82),
+                          size: context.iconSize(16),
+                        ),
                         SizedBox(width: context.spacing(4)),
                         Text(
                           '$_connectionCount 个活动连接',
@@ -733,7 +759,10 @@ class _DashboardPageState extends State<DashboardPage> {
                     // 显示断开连接确认对话框
                     _showConnectionDialog(isDark);
                   },
-                  icon: Icon(Icons.power_settings_new, size: context.iconSize(24)),
+                  icon: Icon(
+                    Icons.power_settings_new,
+                    size: context.iconSize(24),
+                  ),
                   tooltip: '断开连接',
                 ),
               )
@@ -775,103 +804,117 @@ class _DashboardPageState extends State<DashboardPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                // VPN图标
-                Container(
-                  width: context.w(64),
-                  height: context.w(64),
-                  decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.1),
-                    shape: BoxShape.circle,
+                  // VPN图标
+                  Container(
+                    width: context.w(64),
+                    height: context.w(64),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.vpn_lock,
+                      color: primaryColor,
+                      size: context.iconSize(32),
+                    ),
                   ),
-                  child: Icon(
-                    Icons.vpn_lock,
-                    color: primaryColor,
-                    size: context.iconSize(32),
+                  SizedBox(height: context.spacing(24)),
+                  // 标题
+                  Text(
+                    '目前有 $_connectionCount 个活动连接',
+                    style: TextStyle(
+                      fontSize: context.sp(20),
+                      fontWeight: FontWeight.bold,
+                      color: isDark
+                          ? AppTheme.darkTextPrimary
+                          : AppTheme.lightTextPrimary,
+                    ),
                   ),
-                ),
-                SizedBox(height: context.spacing(24)),
-                // 标题
-                Text(
-                  '目前有 $_connectionCount 个活动连接',
-                  style: TextStyle(
-                    fontSize: context.sp(20),
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  SizedBox(height: context.spacing(12)),
+                  // 副标题
+                  Text(
+                    '是否断开组网连接?',
+                    style: TextStyle(
+                      fontSize: context.sp(14),
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
                   ),
-                ),
-                SizedBox(height: context.spacing(12)),
-                // 副标题
-                Text(
-                  '是否断开组网连接?',
-                  style: TextStyle(
-                    fontSize: context.sp(14),
-                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                  ),
-                ),
-                SizedBox(height: context.spacing(32)),
-                // 按钮
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.of(dialogContext).pop();
-                        },
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: context.spacing(16)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(context.radius(12)),
+                  SizedBox(height: context.spacing(32)),
+                  // 按钮
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                          },
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.symmetric(
+                              vertical: context.spacing(16),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                context.radius(12),
+                              ),
+                            ),
+                            backgroundColor: isDark
+                                ? Colors.grey[800]
+                                : Colors.grey[200],
                           ),
-                          backgroundColor: isDark
-                              ? Colors.grey[800]
-                              : Colors.grey[200],
-                        ),
-                        child: Text(
-                          '取消',
-                          style: TextStyle(
-                            fontSize: context.sp(16),
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                          child: Text(
+                            '取消',
+                            style: TextStyle(
+                              fontSize: context.sp(16),
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? AppTheme.darkTextPrimary
+                                  : AppTheme.lightTextPrimary,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: context.spacing(12)),
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () async {
-                          Navigator.of(dialogContext).pop();
+                      SizedBox(width: context.spacing(12)),
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () async {
+                            Navigator.of(dialogContext).pop();
 
-                          // 清空所有历史数据
-                          _clearAllHistoryData();
+                            // 清空所有历史数据
+                            _clearAllHistoryData();
 
-                          // 调用断开连接回调
-                          widget.onDisconnect?.call();
-                        },
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: context.spacing(16)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(context.radius(12)),
+                            // 调用断开连接回调
+                            widget.onDisconnect?.call();
+                          },
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.symmetric(
+                              vertical: context.spacing(16),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                context.radius(12),
+                              ),
+                            ),
+                            backgroundColor: Colors.red,
                           ),
-                          backgroundColor: Colors.red,
-                        ),
-                        child: Text(
-                          '断开',
-                          style: TextStyle(
-                            fontSize: context.sp(16),
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                          child: Text(
+                            '断开',
+                            style: TextStyle(
+                              fontSize: context.sp(16),
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      );
+        );
       },
     );
   }
@@ -881,13 +924,19 @@ class _DashboardPageState extends State<DashboardPage> {
     final primaryColor = Theme.of(context).primaryColor;
     return InkWell(
       onTap: () => _showNetworkSpeedDialog(isDark),
-      borderRadius: BorderRadius.circular(ResponsiveUtils.getCardRadius(context)),
+      borderRadius: BorderRadius.circular(
+        ResponsiveUtils.getCardRadius(context),
+      ),
       child: Container(
         height: ResponsiveUtils.getCardHeight(context, baseHeight: 240.0),
         padding: ResponsiveUtils.getCardPadding(context),
         decoration: BoxDecoration(
-          color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-          borderRadius: BorderRadius.circular(ResponsiveUtils.getCardRadius(context)),
+          color: isDark
+              ? AppTheme.darkCardBackground
+              : AppTheme.lightCardBackground,
+          borderRadius: BorderRadius.circular(
+            ResponsiveUtils.getCardRadius(context),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
@@ -901,7 +950,11 @@ class _DashboardPageState extends State<DashboardPage> {
           children: [
             Row(
               children: [
-                Icon(Icons.speed, color: primaryColor, size: context.iconSize(20)),
+                Icon(
+                  Icons.speed,
+                  color: primaryColor,
+                  size: context.iconSize(20),
+                ),
                 SizedBox(width: context.spacing(8)),
                 Expanded(
                   child: Text(
@@ -909,16 +962,16 @@ class _DashboardPageState extends State<DashboardPage> {
                     style: TextStyle(
                       fontSize: context.sp(16),
                       fontWeight: FontWeight.w600,
-                      color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                      color: isDark
+                          ? AppTheme.darkTextPrimary
+                          : AppTheme.lightTextPrimary,
                     ),
                   ),
                 ),
               ],
             ),
             SizedBox(height: context.spacing(16)),
-            Expanded(
-              child: _buildSpeedChart(isDark),
-            ),
+            Expanded(child: _buildSpeedChart(isDark)),
             SizedBox(height: context.spacing(12)),
             // 数值显示在折线图下方，上下两行
             Column(
@@ -926,14 +979,20 @@ class _DashboardPageState extends State<DashboardPage> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.arrow_upward, color: Colors.red[400], size: context.iconSize(14)),
+                    Icon(
+                      Icons.arrow_upward,
+                      color: Colors.red[400],
+                      size: context.iconSize(14),
+                    ),
                     SizedBox(width: context.spacing(4)),
                     Flexible(
                       child: Text(
                         '上传: $_currentUpSpeed',
                         style: TextStyle(
                           fontSize: context.sp(12),
-                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -944,14 +1003,20 @@ class _DashboardPageState extends State<DashboardPage> {
                 SizedBox(height: context.spacing(4)),
                 Row(
                   children: [
-                    Icon(Icons.arrow_downward, color: Colors.green[400], size: context.iconSize(14)),
+                    Icon(
+                      Icons.arrow_downward,
+                      color: Colors.green[400],
+                      size: context.iconSize(14),
+                    ),
                     SizedBox(width: context.spacing(4)),
                     Flexible(
                       child: Text(
                         '下载: $_currentDownSpeed',
                         style: TextStyle(
                           fontSize: context.sp(12),
-                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                         overflow: TextOverflow.ellipsis,
@@ -985,7 +1050,9 @@ class _DashboardPageState extends State<DashboardPage> {
             show: true,
             border: Border(
               bottom: BorderSide(
-                color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3),
+                color: isDark
+                    ? Colors.white.withOpacity(0.3)
+                    : Colors.black.withOpacity(0.3),
                 width: 1,
               ),
             ),
@@ -997,7 +1064,10 @@ class _DashboardPageState extends State<DashboardPage> {
           maxY: 10,
           lineBarsData: [
             LineChartBarData(
-              spots: List.generate(maxDisplayCount, (i) => FlSpot(i.toDouble(), 0)),
+              spots: List.generate(
+                maxDisplayCount,
+                (i) => FlSpot(i.toDouble(), 0),
+              ),
               isCurved: true,
               color: Colors.red[400],
               barWidth: 2,
@@ -1009,7 +1079,10 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
             LineChartBarData(
-              spots: List.generate(maxDisplayCount, (i) => FlSpot(i.toDouble(), 0)),
+              spots: List.generate(
+                maxDisplayCount,
+                (i) => FlSpot(i.toDouble(), 0),
+              ),
               isCurved: true,
               color: Colors.green[400],
               barWidth: 2,
@@ -1062,7 +1135,8 @@ class _DashboardPageState extends State<DashboardPage> {
     // 从右往左显示：最新数据在右边（x=19），最旧数据在左边（x=0）
     for (int i = 0; i < _uploadSpeedHistory.length; i++) {
       // X坐标 = 从右边开始的位置
-      double xPos = (maxDisplayCount - _uploadSpeedHistory.length + i).toDouble();
+      double xPos = (maxDisplayCount - _uploadSpeedHistory.length + i)
+          .toDouble();
       double yValue = _uploadSpeedHistory[i];
       uploadSpots.add(FlSpot(xPos, yValue));
     }
@@ -1070,7 +1144,8 @@ class _DashboardPageState extends State<DashboardPage> {
     // 生成下载速度数据点
     List<FlSpot> downloadSpots = [];
     for (int i = 0; i < _downloadSpeedHistory.length; i++) {
-      double xPos = (maxDisplayCount - _downloadSpeedHistory.length + i).toDouble();
+      double xPos = (maxDisplayCount - _downloadSpeedHistory.length + i)
+          .toDouble();
       double yValue = _downloadSpeedHistory[i];
       downloadSpots.add(FlSpot(xPos, yValue));
     }
@@ -1083,7 +1158,9 @@ class _DashboardPageState extends State<DashboardPage> {
           show: true,
           border: Border(
             bottom: BorderSide(
-              color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3),
+              color: isDark
+                  ? Colors.white.withOpacity(0.3)
+                  : Colors.black.withOpacity(0.3),
               width: 1,
             ),
           ),
@@ -1094,7 +1171,7 @@ class _DashboardPageState extends State<DashboardPage> {
             getTooltipColor: (touchedSpot) => isDark
                 ? Colors.grey[800]!.withOpacity(0.9)
                 : Colors.grey[700]!.withOpacity(0.9),
-            tooltipRoundedRadius: 8,
+            tooltipBorderRadius: BorderRadius.circular(8),
             tooltipPadding: EdgeInsets.all(context.spacingXSmall),
             getTooltipItems: (List<LineBarSpot> touchedSpots) {
               return touchedSpots.map((spot) {
@@ -1155,13 +1232,19 @@ class _DashboardPageState extends State<DashboardPage> {
     final primaryColor = Theme.of(context).primaryColor;
     return InkWell(
       onTap: () => _showNetworkQualityDialog(isDark),
-      borderRadius: BorderRadius.circular(ResponsiveUtils.getCardRadius(context)),
+      borderRadius: BorderRadius.circular(
+        ResponsiveUtils.getCardRadius(context),
+      ),
       child: Container(
         height: ResponsiveUtils.getCardHeight(context, baseHeight: 240.0),
         padding: ResponsiveUtils.getCardPadding(context),
         decoration: BoxDecoration(
-          color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-          borderRadius: BorderRadius.circular(ResponsiveUtils.getCardRadius(context)),
+          color: isDark
+              ? AppTheme.darkCardBackground
+              : AppTheme.lightCardBackground,
+          borderRadius: BorderRadius.circular(
+            ResponsiveUtils.getCardRadius(context),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
@@ -1170,107 +1253,125 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ],
         ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.signal_cellular_alt, color: primaryColor, size: context.iconSize(20)),
-              SizedBox(width: context.spacing(8)),
-              Expanded(
-                child: Text(
-                  '网络质量',
-                  style: TextStyle(
-                    fontSize: context.sp(16),
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.signal_cellular_alt,
+                  color: primaryColor,
+                  size: context.iconSize(20),
+                ),
+                SizedBox(width: context.spacing(8)),
+                Expanded(
+                  child: Text(
+                    '网络质量',
+                    style: TextStyle(
+                      fontSize: context.sp(16),
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? AppTheme.darkTextPrimary
+                          : AppTheme.lightTextPrimary,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: context.spacing(16)),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                // 使用响应式工具计算环形图大小
-                final chartSize = ResponsiveUtils.getPieChartSize(
-                  context,
-                  baseSize: 80.0,
-                  minSize: 50.0,
-                  maxSize: 100.0,
-                );
+              ],
+            ),
+            SizedBox(height: context.spacing(16)),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // 使用响应式工具计算环形图大小
+                  final chartSize = ResponsiveUtils.getPieChartSize(
+                    context,
+                    baseSize: 80.0,
+                    minSize: 50.0,
+                    maxSize: 100.0,
+                  );
 
-                return Row(
+                  return Row(
+                    children: [
+                      // 环形图居左，响应式大小
+                      SizedBox(
+                        width: chartSize,
+                        height: chartSize,
+                        child: _buildQualityPieChart(context, isDark),
+                      ),
+                      // 使用Spacer推动文字描述到右边
+                      const Spacer(),
+                      // 文字描述整体靠右，但内部左对齐
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLegendItem(context, '未连接', Colors.grey[300]!),
+                          SizedBox(height: context.spacing(8)),
+                          _buildLegendItem(context, '延迟', Colors.green[400]!),
+                          SizedBox(height: context.spacing(8)),
+                          _buildLegendItem(context, '丢包', Colors.red[400]!),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: context.spacing(12)),
+            // 延迟和丢包上下两行显示，前面增加图标
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    // 环形图居左，响应式大小
-                    SizedBox(
-                      width: chartSize,
-                      height: chartSize,
-                      child: _buildQualityPieChart(context, isDark),
+                    Icon(
+                      Icons.timer_outlined,
+                      size: context.iconSize(14),
+                      color: Colors.green[400],
                     ),
-                    // 使用Spacer推动文字描述到右边
-                    const Spacer(),
-                    // 文字描述整体靠右，但内部左对齐
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLegendItem(context, '未连接', Colors.grey[300]!),
-                        SizedBox(height: context.spacing(8)),
-                        _buildLegendItem(context, '延迟', Colors.green[400]!),
-                        SizedBox(height: context.spacing(8)),
-                        _buildLegendItem(context, '丢包', Colors.red[400]!),
-                      ],
+                    SizedBox(width: context.spacing(4)),
+                    Flexible(
+                      child: Text(
+                        '延迟: ${_avgLatency > 0 ? '$_avgLatency ms' : '-- ms'}',
+                        style: TextStyle(
+                          fontSize: context.sp(12),
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
-                );
-              },
+                ),
+                SizedBox(height: context.spacing(4)),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_outlined,
+                      size: context.iconSize(14),
+                      color: Colors.red[400],
+                    ),
+                    SizedBox(width: context.spacing(4)),
+                    Flexible(
+                      child: Text(
+                        '丢包: ${_packetLoss.toStringAsFixed(2)}%',
+                        style: TextStyle(
+                          fontSize: context.sp(12),
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ),
-          SizedBox(height: context.spacing(12)),
-          // 延迟和丢包上下两行显示，前面增加图标
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.timer_outlined, size: context.iconSize(14), color: Colors.green[400]),
-                  SizedBox(width: context.spacing(4)),
-                  Flexible(
-                    child: Text(
-                      '延迟: ${_avgLatency > 0 ? '$_avgLatency ms' : '-- ms'}',
-                      style: TextStyle(
-                        fontSize: context.sp(12),
-                        color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: context.spacing(4)),
-              Row(
-                children: [
-                  Icon(Icons.warning_amber_outlined, size: context.iconSize(14), color: Colors.red[400]),
-                  SizedBox(width: context.spacing(4)),
-                  Flexible(
-                    child: Text(
-                      '丢包: ${_packetLoss.toStringAsFixed(2)}%',
-                      style: TextStyle(
-                        fontSize: context.sp(12),
-                        color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -1349,13 +1450,19 @@ class _DashboardPageState extends State<DashboardPage> {
     final primaryColor = Theme.of(context).primaryColor;
     return InkWell(
       onTap: () => _showTrafficStatisticsDialog(isDark),
-      borderRadius: BorderRadius.circular(ResponsiveUtils.getCardRadius(context)),
+      borderRadius: BorderRadius.circular(
+        ResponsiveUtils.getCardRadius(context),
+      ),
       child: Container(
         height: ResponsiveUtils.getCardHeight(context, baseHeight: 240.0),
         padding: ResponsiveUtils.getCardPadding(context),
         decoration: BoxDecoration(
-          color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-          borderRadius: BorderRadius.circular(ResponsiveUtils.getCardRadius(context)),
+          color: isDark
+              ? AppTheme.darkCardBackground
+              : AppTheme.lightCardBackground,
+          borderRadius: BorderRadius.circular(
+            ResponsiveUtils.getCardRadius(context),
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
@@ -1364,105 +1471,123 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ],
         ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.pie_chart, color: primaryColor, size: context.iconSize(20)),
-              SizedBox(width: context.spacing(8)),
-              Expanded(
-                child: Text(
-                  '流量统计',
-                  style: TextStyle(
-                    fontSize: context.sp(16),
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.pie_chart,
+                  color: primaryColor,
+                  size: context.iconSize(20),
+                ),
+                SizedBox(width: context.spacing(8)),
+                Expanded(
+                  child: Text(
+                    '流量统计',
+                    style: TextStyle(
+                      fontSize: context.sp(16),
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? AppTheme.darkTextPrimary
+                          : AppTheme.lightTextPrimary,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: context.spacing(16)),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                // 使用响应式工具计算环形图大小
-                final chartSize = ResponsiveUtils.getPieChartSize(
-                  context,
-                  baseSize: 80.0,
-                  minSize: 50.0,
-                  maxSize: 100.0,
-                );
+              ],
+            ),
+            SizedBox(height: context.spacing(16)),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // 使用响应式工具计算环形图大小
+                  final chartSize = ResponsiveUtils.getPieChartSize(
+                    context,
+                    baseSize: 80.0,
+                    minSize: 50.0,
+                    maxSize: 100.0,
+                  );
 
-                return Row(
+                  return Row(
+                    children: [
+                      // 环形图居左，响应式大小
+                      SizedBox(
+                        width: chartSize,
+                        height: chartSize,
+                        child: _buildTrafficPieChart(context, isDark),
+                      ),
+                      // 使用Spacer推动文字描述到右边
+                      const Spacer(),
+                      // 文字描述整体靠右，但内部左对齐
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLegendItem(context, '上传', Colors.cyan[400]!),
+                          SizedBox(height: context.spacing(8)),
+                          _buildLegendItem(context, '下载', Colors.blue[400]!),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            SizedBox(height: context.spacing(12)),
+            // 上传下载上下两行显示
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    // 环形图居左，响应式大小
-                    SizedBox(
-                      width: chartSize,
-                      height: chartSize,
-                      child: _buildTrafficPieChart(context, isDark),
+                    Icon(
+                      Icons.arrow_upward,
+                      size: context.iconSize(14),
+                      color: Colors.cyan[400],
                     ),
-                    // 使用Spacer推动文字描述到右边
-                    const Spacer(),
-                    // 文字描述整体靠右，但内部左对齐
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLegendItem(context, '上传', Colors.cyan[400]!),
-                        SizedBox(height: context.spacing(8)),
-                        _buildLegendItem(context, '下载', Colors.blue[400]!),
-                      ],
+                    SizedBox(width: context.spacing(4)),
+                    Flexible(
+                      child: Text(
+                        '上传: $_totalUpStream',
+                        style: TextStyle(
+                          fontSize: context.sp(12),
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
-                );
-              },
+                ),
+                SizedBox(height: context.spacing(4)),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.arrow_downward,
+                      size: context.iconSize(14),
+                      color: Colors.blue[400],
+                    ),
+                    SizedBox(width: context.spacing(4)),
+                    Flexible(
+                      child: Text(
+                        '下载: $_totalDownStream',
+                        style: TextStyle(
+                          fontSize: context.sp(12),
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ),
-          SizedBox(height: context.spacing(12)),
-          // 上传下载上下两行显示
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.arrow_upward, size: context.iconSize(14), color: Colors.cyan[400]),
-                  SizedBox(width: context.spacing(4)),
-                  Flexible(
-                    child: Text(
-                      '上传: $_totalUpStream',
-                      style: TextStyle(
-                        fontSize: context.sp(12),
-                        color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: context.spacing(4)),
-              Row(
-                children: [
-                  Icon(Icons.arrow_downward, size: context.iconSize(14), color: Colors.blue[400]),
-                  SizedBox(width: context.spacing(4)),
-                  Flexible(
-                    child: Text(
-                      '下载: $_totalDownStream',
-                      style: TextStyle(
-                        fontSize: context.sp(12),
-                        color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -1504,7 +1629,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
     // 计算百分比
     for (var device in deviceList) {
-      device['percentage'] = totalBytes > 0 ? (device['totalBytes'] / totalBytes) * 100 : 0;
+      device['percentage'] = totalBytes > 0
+          ? (device['totalBytes'] / totalBytes) * 100
+          : 0;
     }
 
     // 按总流量大小排序（从大到小）
@@ -1513,7 +1640,9 @@ class _DashboardPageState extends State<DashboardPage> {
     // 当设备数>=2时，调整百分比显示，避免出现100%和0.0%的不合理情况
     if (deviceList.length >= 2) {
       // 统计有流量的设备数量
-      int devicesWithTraffic = deviceList.where((d) => d['totalBytes'] > 0).length;
+      int devicesWithTraffic = deviceList
+          .where((d) => d['totalBytes'] > 0)
+          .length;
 
       if (devicesWithTraffic >= 2) {
         for (var device in deviceList) {
@@ -1585,7 +1714,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             style: TextStyle(
                               fontSize: context.fontLarge,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A1A),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -1601,10 +1732,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.close,
-                        color: primaryColor,
-                      ),
+                      icon: Icon(Icons.close, color: primaryColor),
                     ),
                   ],
                 ),
@@ -1625,12 +1753,18 @@ class _DashboardPageState extends State<DashboardPage> {
                             child: Container(
                               padding: EdgeInsets.all(context.spacingMedium),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                                color: isDark
+                                    ? const Color(0xFF1E1E1E)
+                                    : const Color(0xFFF5F5F5),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Column(
                                 children: [
-                                  Icon(Icons.arrow_upward, color: Colors.green[400], size: 20),
+                                  Icon(
+                                    Icons.arrow_upward,
+                                    color: Colors.green[400],
+                                    size: 20,
+                                  ),
                                   const SizedBox(height: 8),
                                   Text(
                                     _formatTraffic(totalUpBytes),
@@ -1645,7 +1779,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                     '总上传',
                                     style: TextStyle(
                                       fontSize: context.fontSmall,
-                                      color: isDark ? Colors.white54 : Colors.black45,
+                                      color: isDark
+                                          ? Colors.white54
+                                          : Colors.black45,
                                     ),
                                   ),
                                 ],
@@ -1658,12 +1794,18 @@ class _DashboardPageState extends State<DashboardPage> {
                             child: Container(
                               padding: EdgeInsets.all(context.spacingMedium),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                                color: isDark
+                                    ? const Color(0xFF1E1E1E)
+                                    : const Color(0xFFF5F5F5),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Column(
                                 children: [
-                                  Icon(Icons.arrow_downward, color: Colors.blue[400], size: 20),
+                                  Icon(
+                                    Icons.arrow_downward,
+                                    color: Colors.blue[400],
+                                    size: 20,
+                                  ),
                                   const SizedBox(height: 8),
                                   Text(
                                     _formatTraffic(totalDownBytes),
@@ -1678,7 +1820,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                     '总下载',
                                     style: TextStyle(
                                       fontSize: context.fontSmall,
-                                      color: isDark ? Colors.white54 : Colors.black45,
+                                      color: isDark
+                                          ? Colors.white54
+                                          : Colors.black45,
                                     ),
                                   ),
                                 ],
@@ -1691,12 +1835,18 @@ class _DashboardPageState extends State<DashboardPage> {
                             child: Container(
                               padding: EdgeInsets.all(context.spacingMedium),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                                color: isDark
+                                    ? const Color(0xFF1E1E1E)
+                                    : const Color(0xFFF5F5F5),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Column(
                                 children: [
-                                  Icon(Icons.swap_vert, color: primaryColor, size: 20),
+                                  Icon(
+                                    Icons.swap_vert,
+                                    color: primaryColor,
+                                    size: 20,
+                                  ),
                                   const SizedBox(height: 8),
                                   Text(
                                     _formatTraffic(totalBytes),
@@ -1711,7 +1861,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                     '总计',
                                     style: TextStyle(
                                       fontSize: context.fontSmall,
-                                      color: isDark ? Colors.white54 : Colors.black45,
+                                      color: isDark
+                                          ? Colors.white54
+                                          : Colors.black45,
                                     ),
                                   ),
                                 ],
@@ -1790,7 +1942,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       if (deviceList.isEmpty)
                         Center(
                           child: Padding(
-                            padding: EdgeInsets.all(context.spacingXLarge + context.spacingXSmall),
+                            padding: EdgeInsets.all(
+                              context.spacingXLarge + context.spacingXSmall,
+                            ),
                             child: Text(
                               '暂无设备流量数据',
                               style: TextStyle(
@@ -1809,7 +1963,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: EdgeInsets.all(context.spacingMedium),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                              color: isDark
+                                  ? const Color(0xFF1E1E1E)
+                                  : const Color(0xFFF5F5F5),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Column(
@@ -1823,7 +1979,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                       width: 24,
                                       height: 24,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFFA726).withOpacity(0.2),
+                                        color: const Color(
+                                          0xFFFFA726,
+                                        ).withOpacity(0.2),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Center(
@@ -1841,21 +1999,26 @@ class _DashboardPageState extends State<DashboardPage> {
                                     // IP地址
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             device['ip'],
                                             style: TextStyle(
                                               fontSize: context.fontBody,
                                               fontWeight: FontWeight.w600,
-                                              color: isDark ? Colors.white : Colors.black87,
+                                              color: isDark
+                                                  ? Colors.white
+                                                  : Colors.black87,
                                             ),
                                           ),
                                           Text(
                                             device['ip'],
                                             style: TextStyle(
                                               fontSize: context.fontXSmall,
-                                              color: isDark ? Colors.white54 : Colors.black45,
+                                              color: isDark
+                                                  ? Colors.white54
+                                                  : Colors.black45,
                                             ),
                                           ),
                                         ],
@@ -1863,9 +2026,14 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ),
                                     // 百分比
                                     Container(
-                                      padding: EdgeInsets.symmetric(horizontal: context.spacingSmall, vertical: context.spacingXSmall / 2),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: context.spacingSmall,
+                                        vertical: context.spacingXSmall / 2,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF81C784).withOpacity(0.2),
+                                        color: const Color(
+                                          0xFF81C784,
+                                        ).withOpacity(0.2),
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
@@ -1884,44 +2052,68 @@ class _DashboardPageState extends State<DashboardPage> {
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(4),
                                   child: LinearProgressIndicator(
-                                    value: (device['percentage'] / 100).clamp(0.0, 1.0),
+                                    value: (device['percentage'] / 100).clamp(
+                                      0.0,
+                                      1.0,
+                                    ),
                                     minHeight: 6,
                                     backgroundColor: Colors.grey[300],
-                                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF81C784)),
+                                    valueColor:
+                                        const AlwaysStoppedAnimation<Color>(
+                                          Color(0xFF81C784),
+                                        ),
                                   ),
                                 ),
                                 const SizedBox(height: 12),
                                 // 流量详情
                                 Row(
                                   children: [
-                                    Icon(Icons.arrow_upward, size: context.iconXSmall, color: Colors.green[400]),
+                                    Icon(
+                                      Icons.arrow_upward,
+                                      size: context.iconXSmall,
+                                      color: Colors.green[400],
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       device['upFormatted'],
                                       style: TextStyle(
                                         fontSize: context.fontSmall,
-                                        color: isDark ? Colors.white70 : Colors.black54,
+                                        color: isDark
+                                            ? Colors.white70
+                                            : Colors.black54,
                                       ),
                                     ),
                                     const SizedBox(width: 16),
-                                    Icon(Icons.arrow_downward, size: context.iconXSmall, color: Colors.blue[400]),
+                                    Icon(
+                                      Icons.arrow_downward,
+                                      size: context.iconXSmall,
+                                      color: Colors.blue[400],
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       device['downFormatted'],
                                       style: TextStyle(
                                         fontSize: context.fontSmall,
-                                        color: isDark ? Colors.white70 : Colors.black54,
+                                        color: isDark
+                                            ? Colors.white70
+                                            : Colors.black54,
                                       ),
                                     ),
                                     const SizedBox(width: 16),
-                                    Icon(Icons.swap_vert, size: context.iconXSmall, color: primaryColor),
+                                    Icon(
+                                      Icons.swap_vert,
+                                      size: context.iconXSmall,
+                                      color: primaryColor,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       device['totalFormatted'],
                                       style: TextStyle(
                                         fontSize: context.fontSmall,
                                         fontWeight: FontWeight.w600,
-                                        color: isDark ? Colors.white : Colors.black87,
+                                        color: isDark
+                                            ? Colors.white
+                                            : Colors.black87,
                                       ),
                                     ),
                                   ],
@@ -1942,7 +2134,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             backgroundColor: primaryColor.withOpacity(0.15),
                             foregroundColor: primaryColor,
                             elevation: 0,
-                            padding: EdgeInsets.symmetric(vertical: context.spacingMedium),
+                            padding: EdgeInsets.symmetric(
+                              vertical: context.spacingMedium,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -2032,25 +2226,23 @@ class _DashboardPageState extends State<DashboardPage> {
         Container(
           width: context.w(12),
           height: context.w(12),
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         SizedBox(width: context.spacing(6)),
         Text(
           label,
-          style: TextStyle(
-            fontSize: context.sp(12),
-            color: color,
-          ),
+          style: TextStyle(fontSize: context.sp(12), color: color),
         ),
       ],
     );
   }
 
   // 信息卡片网格
-  Widget _buildInfoCardsGrid(bool isDark, bool isWideScreen, bool hasConnection) {
+  Widget _buildInfoCardsGrid(
+    bool isDark,
+    bool isWideScreen,
+    bool hasConnection,
+  ) {
     return Column(
       children: [
         // 第一行：当前设备、当前配置
@@ -2064,7 +2256,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 value: hasConnection ? _deviceName : '未连接',
                 subtitle: hasConnection ? _natType : '',
                 isNatType: true,
-                onTap: hasConnection ? () => _showCurrentDeviceDialog(isDark) : null,
+                onTap: hasConnection
+                    ? () => _showCurrentDeviceDialog(isDark)
+                    : null,
               ),
             ),
             const SizedBox(width: 12),
@@ -2096,7 +2290,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 subtitle: hasConnection
                     ? '${_deviceCount - _offlineDeviceCount} 在线 / $_offlineDeviceCount 离线'
                     : '0 在线 / 0 离线',
-                onlineCount: hasConnection ? _deviceCount - _offlineDeviceCount : 0,
+                onlineCount: hasConnection
+                    ? _deviceCount - _offlineDeviceCount
+                    : 0,
                 offlineCount: hasConnection ? _offlineDeviceCount : 0,
                 onTap: () => _showDevicesDialog(isDark),
               ),
@@ -2152,7 +2348,9 @@ class _DashboardPageState extends State<DashboardPage> {
     Widget cardContent = Container(
       padding: EdgeInsets.all(context.spacingMedium),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+        color: isDark
+            ? AppTheme.darkCardBackground
+            : AppTheme.lightCardBackground,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -2168,11 +2366,7 @@ class _DashboardPageState extends State<DashboardPage> {
         children: [
           Row(
             children: [
-              Icon(
-                icon,
-                color: primaryColor,
-                size: context.iconSmall,
-              ),
+              Icon(icon, color: primaryColor, size: context.iconSmall),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -2180,7 +2374,9 @@ class _DashboardPageState extends State<DashboardPage> {
                   style: TextStyle(
                     fontSize: context.fontBody,
                     fontWeight: FontWeight.w500,
-                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                    color: isDark
+                        ? AppTheme.darkTextSecondary
+                        : AppTheme.lightTextSecondary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2188,7 +2384,10 @@ class _DashboardPageState extends State<DashboardPage> {
               // 显示协议标签（中继服务器卡片）
               if (protocol.isNotEmpty)
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: context.spacingXSmall / 2, vertical: context.spacingXSmall / 4),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.spacingXSmall / 2,
+                    vertical: context.spacingXSmall / 4,
+                  ),
                   decoration: BoxDecoration(
                     color: primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
@@ -2211,7 +2410,9 @@ class _DashboardPageState extends State<DashboardPage> {
                     child: Icon(
                       Icons.content_copy,
                       size: context.iconXSmall,
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
                     ),
                   ),
                 ),
@@ -2226,7 +2427,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 style: TextStyle(
                   fontSize: context.fontMedium,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  color: isDark
+                      ? AppTheme.darkTextPrimary
+                      : AppTheme.lightTextPrimary,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -2240,7 +2443,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       Icon(
                         isEncrypted ? Icons.lock : Icons.lock_open,
                         size: 11,
-                        color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                        color: isDark
+                            ? AppTheme.darkTextSecondary
+                            : AppTheme.lightTextSecondary,
                       ),
                       const SizedBox(width: 4),
                       Expanded(
@@ -2248,7 +2453,9 @@ class _DashboardPageState extends State<DashboardPage> {
                           subtitle,
                           style: TextStyle(
                             fontSize: context.fontXSmall,
-                            color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                            color: isDark
+                                ? AppTheme.darkTextSecondary
+                                : AppTheme.lightTextSecondary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -2272,7 +2479,9 @@ class _DashboardPageState extends State<DashboardPage> {
                         ' 在线 / ',
                         style: TextStyle(
                           fontSize: context.fontXSmall,
-                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
                         ),
                       ),
                       Text(
@@ -2287,7 +2496,9 @@ class _DashboardPageState extends State<DashboardPage> {
                         ' 离线',
                         style: TextStyle(
                           fontSize: context.fontXSmall,
-                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
                         ),
                       ),
                     ],
@@ -2297,9 +2508,13 @@ class _DashboardPageState extends State<DashboardPage> {
                   Row(
                     children: [
                       Icon(
-                        subtitle.contains('Cone') ? Icons.hub : Icons.device_hub,
+                        subtitle.contains('Cone')
+                            ? Icons.hub
+                            : Icons.device_hub,
                         size: 11,
-                        color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                        color: isDark
+                            ? AppTheme.darkTextSecondary
+                            : AppTheme.lightTextSecondary,
                       ),
                       const SizedBox(width: 4),
                       Expanded(
@@ -2307,7 +2522,9 @@ class _DashboardPageState extends State<DashboardPage> {
                           subtitle,
                           style: TextStyle(
                             fontSize: context.fontXSmall,
-                            color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                            color: isDark
+                                ? AppTheme.darkTextSecondary
+                                : AppTheme.lightTextSecondary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -2320,7 +2537,9 @@ class _DashboardPageState extends State<DashboardPage> {
                     subtitle,
                     style: TextStyle(
                       fontSize: context.fontXSmall,
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -2379,9 +2598,14 @@ class _DashboardPageState extends State<DashboardPage> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: context.spacingLarge, horizontal: context.spacingMedium),
+        padding: EdgeInsets.symmetric(
+          vertical: context.spacingLarge,
+          horizontal: context.spacingMedium,
+        ),
         decoration: BoxDecoration(
-          color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+          color: isDark
+              ? AppTheme.darkCardBackground
+              : AppTheme.lightCardBackground,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -2394,18 +2618,16 @@ class _DashboardPageState extends State<DashboardPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: primaryColor,
-              size: context.iconMedium,
-            ),
+            Icon(icon, color: primaryColor, size: context.iconMedium),
             const SizedBox(width: 12),
             Text(
               label,
               style: TextStyle(
                 fontSize: context.fontMedium,
                 fontWeight: FontWeight.w600,
-                color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                color: isDark
+                    ? AppTheme.darkTextPrimary
+                    : AppTheme.lightTextPrimary,
               ),
             ),
           ],
@@ -2471,7 +2693,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             style: TextStyle(
                               fontSize: context.fontLarge,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A1A),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -2487,10 +2711,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.close,
-                        color: primaryColor,
-                      ),
+                      icon: Icon(Icons.close, color: primaryColor),
                     ),
                   ],
                 ),
@@ -2511,7 +2732,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             child: Container(
                               padding: EdgeInsets.all(context.spacingMedium),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFE8F5E9),
+                                color: isDark
+                                    ? const Color(0xFF1E1E1E)
+                                    : const Color(0xFFE8F5E9),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Column(
@@ -2529,7 +2752,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                         '上传速度',
                                         style: TextStyle(
                                           fontSize: context.fontSmall,
-                                          color: isDark ? Colors.white70 : Colors.black54,
+                                          color: isDark
+                                              ? Colors.white70
+                                              : Colors.black54,
                                         ),
                                       ),
                                     ],
@@ -2545,10 +2770,14 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ),
                                   ),
                                   Text(
-                                    _currentUpSpeed.split(' ').length > 1 ? _currentUpSpeed.split(' ')[1] : 'B/s',
+                                    _currentUpSpeed.split(' ').length > 1
+                                        ? _currentUpSpeed.split(' ')[1]
+                                        : 'B/s',
                                     style: TextStyle(
                                       fontSize: context.fontBody,
-                                      color: isDark ? Colors.white54 : Colors.black45,
+                                      color: isDark
+                                          ? Colors.white54
+                                          : Colors.black45,
                                     ),
                                   ),
                                 ],
@@ -2561,7 +2790,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             child: Container(
                               padding: EdgeInsets.all(context.spacingMedium),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFE3F2FD),
+                                color: isDark
+                                    ? const Color(0xFF1E1E1E)
+                                    : const Color(0xFFE3F2FD),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Column(
@@ -2579,7 +2810,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                         '下载速度',
                                         style: TextStyle(
                                           fontSize: context.fontSmall,
-                                          color: isDark ? Colors.white70 : Colors.black54,
+                                          color: isDark
+                                              ? Colors.white70
+                                              : Colors.black54,
                                         ),
                                       ),
                                     ],
@@ -2595,10 +2828,14 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ),
                                   ),
                                   Text(
-                                    _currentDownSpeed.split(' ').length > 1 ? _currentDownSpeed.split(' ')[1] : 'B/s',
+                                    _currentDownSpeed.split(' ').length > 1
+                                        ? _currentDownSpeed.split(' ')[1]
+                                        : 'B/s',
                                     style: TextStyle(
                                       fontSize: context.fontBody,
-                                      color: isDark ? Colors.white54 : Colors.black45,
+                                      color: isDark
+                                          ? Colors.white54
+                                          : Colors.black45,
                                     ),
                                   ),
                                 ],
@@ -2614,7 +2851,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       Container(
                         padding: EdgeInsets.all(context.spacingMedium),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                          color: isDark
+                              ? const Color(0xFF1E1E1E)
+                              : const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
@@ -2624,7 +2863,9 @@ class _DashboardPageState extends State<DashboardPage> {
                               children: [
                                 Icon(
                                   Icons.bar_chart,
-                                  color: isDark ? Colors.white70 : Colors.black54,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black54,
                                   size: context.iconXSmall,
                                 ),
                                 const SizedBox(width: 6),
@@ -2633,7 +2874,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                   style: TextStyle(
                                     fontSize: context.fontBody,
                                     fontWeight: FontWeight.w600,
-                                    color: isDark ? Colors.white : Colors.black87,
+                                    color: isDark
+                                        ? Colors.white
+                                        : Colors.black87,
                                   ),
                                 ),
                               ],
@@ -2653,26 +2896,41 @@ class _DashboardPageState extends State<DashboardPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         '上传',
                                         style: TextStyle(
                                           fontSize: context.fontSmall,
-                                          color: isDark ? Colors.white70 : Colors.black54,
+                                          color: isDark
+                                              ? Colors.white70
+                                              : Colors.black54,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
                                       Row(
                                         children: [
                                           Expanded(
-                                            child: _buildSpeedStatItem('当前', _currentUpSpeed, isDark),
+                                            child: _buildSpeedStatItem(
+                                              '当前',
+                                              _currentUpSpeed,
+                                              isDark,
+                                            ),
                                           ),
                                           Expanded(
-                                            child: _buildSpeedStatItem('峰值', _formatSpeed(_peakUpSpeed), isDark),
+                                            child: _buildSpeedStatItem(
+                                              '峰值',
+                                              _formatSpeed(_peakUpSpeed),
+                                              isDark,
+                                            ),
                                           ),
                                           Expanded(
-                                            child: _buildSpeedStatItem('平均', _formatSpeed(_avgUpSpeed), isDark),
+                                            child: _buildSpeedStatItem(
+                                              '平均',
+                                              _formatSpeed(_avgUpSpeed),
+                                              isDark,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -2696,26 +2954,41 @@ class _DashboardPageState extends State<DashboardPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         '下载',
                                         style: TextStyle(
                                           fontSize: context.fontSmall,
-                                          color: isDark ? Colors.white70 : Colors.black54,
+                                          color: isDark
+                                              ? Colors.white70
+                                              : Colors.black54,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
                                       Row(
                                         children: [
                                           Expanded(
-                                            child: _buildSpeedStatItem('当前', _currentDownSpeed, isDark),
+                                            child: _buildSpeedStatItem(
+                                              '当前',
+                                              _currentDownSpeed,
+                                              isDark,
+                                            ),
                                           ),
                                           Expanded(
-                                            child: _buildSpeedStatItem('峰值', _formatSpeed(_peakDownSpeed), isDark),
+                                            child: _buildSpeedStatItem(
+                                              '峰值',
+                                              _formatSpeed(_peakDownSpeed),
+                                              isDark,
+                                            ),
                                           ),
                                           Expanded(
-                                            child: _buildSpeedStatItem('平均', _formatSpeed(_avgDownSpeed), isDark),
+                                            child: _buildSpeedStatItem(
+                                              '平均',
+                                              _formatSpeed(_avgDownSpeed),
+                                              isDark,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -2734,7 +3007,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       Container(
                         padding: EdgeInsets.all(context.spacingMedium),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                          color: isDark
+                              ? const Color(0xFF1E1E1E)
+                              : const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
@@ -2744,7 +3019,9 @@ class _DashboardPageState extends State<DashboardPage> {
                               children: [
                                 Icon(
                                   Icons.wifi,
-                                  color: isDark ? Colors.white70 : Colors.black54,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black54,
                                   size: context.iconXSmall,
                                 ),
                                 const SizedBox(width: 6),
@@ -2753,7 +3030,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                   style: TextStyle(
                                     fontSize: context.fontBody,
                                     fontWeight: FontWeight.w600,
-                                    color: isDark ? Colors.white : Colors.black87,
+                                    color: isDark
+                                        ? Colors.white
+                                        : Colors.black87,
                                   ),
                                 ),
                               ],
@@ -2772,7 +3051,9 @@ class _DashboardPageState extends State<DashboardPage> {
                               '丢包率',
                               '${_packetLoss.toStringAsFixed(2)}%',
                               isDark,
-                              valueColor: _packetLoss > 5 ? Colors.red[400] : Colors.green[400],
+                              valueColor: _packetLoss > 5
+                                  ? Colors.red[400]
+                                  : Colors.green[400],
                             ),
                           ],
                         ),
@@ -2784,7 +3065,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       Container(
                         padding: EdgeInsets.all(context.spacingMedium),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                          color: isDark
+                              ? const Color(0xFF1E1E1E)
+                              : const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
@@ -2794,7 +3077,9 @@ class _DashboardPageState extends State<DashboardPage> {
                               children: [
                                 Icon(
                                   Icons.show_chart,
-                                  color: isDark ? Colors.white70 : Colors.black54,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black54,
                                   size: context.iconXSmall,
                                 ),
                                 const SizedBox(width: 6),
@@ -2803,7 +3088,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                   style: TextStyle(
                                     fontSize: context.fontBody,
                                     fontWeight: FontWeight.w600,
-                                    color: isDark ? Colors.white : Colors.black87,
+                                    color: isDark
+                                        ? Colors.white
+                                        : Colors.black87,
                                   ),
                                 ),
                               ],
@@ -2828,7 +3115,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             backgroundColor: primaryColor.withOpacity(0.15),
                             foregroundColor: primaryColor,
                             elevation: 0,
-                            padding: EdgeInsets.symmetric(vertical: context.spacingMedium),
+                            padding: EdgeInsets.symmetric(
+                              vertical: context.spacingMedium,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -2949,10 +3238,14 @@ class _DashboardPageState extends State<DashboardPage> {
     }
 
     // 计算P2P百分比
-    double p2pPercentage = totalOnlineDevices > 0 ? (p2pCount / totalOnlineDevices) * 100 : 0;
+    double p2pPercentage = totalOnlineDevices > 0
+        ? (p2pCount / totalOnlineDevices) * 100
+        : 0;
 
     // 计算综合得分（满分100）
-    int qualityScore = hasConnection ? _calculateQualityScore(p2pPercentage, p2pCount, relayCount) : 0;
+    int qualityScore = hasConnection
+        ? _calculateQualityScore(p2pPercentage, p2pCount, relayCount)
+        : 0;
 
     // 根据得分确定评级和描述
     String rating;
@@ -3035,7 +3328,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             style: TextStyle(
                               fontSize: context.fontLarge,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A1A),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -3051,10 +3346,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.close,
-                        color: primaryColor,
-                      ),
+                      icon: Icon(Icons.close, color: primaryColor),
                     ),
                   ],
                 ),
@@ -3071,7 +3363,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       Container(
                         padding: EdgeInsets.all(context.spacingLarge),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF1F8E9),
+                          color: isDark
+                              ? const Color(0xFF1E1E1E)
+                              : const Color(0xFFF1F8E9),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -3090,7 +3384,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                       value: qualityScore / 100,
                                       strokeWidth: 10,
                                       backgroundColor: Colors.grey[300],
-                                      valueColor: AlwaysStoppedAnimation<Color>(ratingColor),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        ratingColor,
+                                      ),
                                     ),
                                   ),
                                   Column(
@@ -3109,7 +3405,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                         '分',
                                         style: TextStyle(
                                           fontSize: context.fontBody,
-                                          color: isDark ? Colors.white54 : Colors.black45,
+                                          color: isDark
+                                              ? Colors.white54
+                                              : Colors.black45,
                                         ),
                                       ),
                                     ],
@@ -3146,7 +3444,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ratingDescription,
                                     style: TextStyle(
                                       fontSize: context.fontBody,
-                                      color: isDark ? Colors.white70 : Colors.black54,
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.black54,
                                     ),
                                   ),
                                 ],
@@ -3187,7 +3487,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       Container(
                         padding: EdgeInsets.all(context.spacingMedium),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                          color: isDark
+                              ? const Color(0xFF1E1E1E)
+                              : const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
@@ -3210,30 +3512,35 @@ class _DashboardPageState extends State<DashboardPage> {
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         '网络延迟',
                                         style: TextStyle(
                                           fontSize: context.fontBody,
                                           fontWeight: FontWeight.w600,
-                                          color: isDark ? Colors.white : Colors.black87,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
                                         _avgLatency > 0
                                             ? (_avgLatency <= 50
-                                                ? '延迟优秀，服务器响应迅速'
-                                                : _avgLatency <= 100
-                                                    ? '延迟良好，正常连接无影响'
-                                                    : _avgLatency <= 200
-                                                        ? '延迟较高，中继时可能影响实时应用'
-                                                        : '延迟过高，中继效果差，建议优化网络')
+                                                  ? '延迟优秀，服务器响应迅速'
+                                                  : _avgLatency <= 100
+                                                  ? '延迟良好，正常连接无影响'
+                                                  : _avgLatency <= 200
+                                                  ? '延迟较高，中继时可能影响实时应用'
+                                                  : '延迟过高，中继效果差，建议优化网络')
                                             : '暂无延迟数据',
                                         style: TextStyle(
                                           fontSize: context.fontSmall,
-                                          color: isDark ? Colors.white54 : Colors.black45,
+                                          color: isDark
+                                              ? Colors.white54
+                                              : Colors.black45,
                                         ),
                                       ),
                                     ],
@@ -3246,11 +3553,13 @@ class _DashboardPageState extends State<DashboardPage> {
                                     fontWeight: FontWeight.bold,
                                     color: _avgLatency > 0
                                         ? (_avgLatency <= 50
-                                            ? Colors.green[400]
-                                            : _avgLatency <= 100
-                                                ? Colors.orange[400]
-                                                : Colors.red[400])
-                                        : (isDark ? Colors.white70 : Colors.black54),
+                                              ? Colors.green[400]
+                                              : _avgLatency <= 100
+                                              ? Colors.orange[400]
+                                              : Colors.red[400])
+                                        : (isDark
+                                              ? Colors.white70
+                                              : Colors.black54),
                                   ),
                                 ),
                               ],
@@ -3266,10 +3575,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                   _avgLatency > 0
                                       ? (_avgLatency <= 50
-                                          ? Colors.green[400]!
-                                          : _avgLatency <= 100
-                                              ? Colors.orange[400]!
-                                              : Colors.red[400]!)
+                                            ? Colors.green[400]!
+                                            : _avgLatency <= 100
+                                            ? Colors.orange[400]!
+                                            : Colors.red[400]!)
                                       : Colors.grey[300]!,
                                 ),
                               ),
@@ -3284,7 +3593,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       Container(
                         padding: EdgeInsets.all(context.spacingMedium),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                          color: isDark
+                              ? const Color(0xFF1E1E1E)
+                              : const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
@@ -3295,7 +3606,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                 Container(
                                   padding: EdgeInsets.all(context.spacingSmall),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF81C784).withOpacity(0.2),
+                                    color: const Color(
+                                      0xFF81C784,
+                                    ).withOpacity(0.2),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(
@@ -3307,14 +3620,17 @@ class _DashboardPageState extends State<DashboardPage> {
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         '丢包率',
                                         style: TextStyle(
                                           fontSize: context.fontBody,
                                           fontWeight: FontWeight.w600,
-                                          color: isDark ? Colors.white : Colors.black87,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -3322,15 +3638,17 @@ class _DashboardPageState extends State<DashboardPage> {
                                         _packetLoss == 0
                                             ? '无丢包，服务器连接稳定'
                                             : _packetLoss <= 1
-                                                ? '轻微丢包，对使用影响极小'
-                                                : _packetLoss <= 2
-                                                    ? '丢包率较低，基本不影响中继'
-                                                    : _packetLoss <= 5
-                                                        ? '丢包率偏高，中继时可能影响体验'
-                                                        : '丢包严重，可能无法正常使用服务器中继',
+                                            ? '轻微丢包，对使用影响极小'
+                                            : _packetLoss <= 2
+                                            ? '丢包率较低，基本不影响中继'
+                                            : _packetLoss <= 5
+                                            ? '丢包率偏高，中继时可能影响体验'
+                                            : '丢包严重，可能无法正常使用服务器中继',
                                         style: TextStyle(
                                           fontSize: context.fontSmall,
-                                          color: isDark ? Colors.white54 : Colors.black45,
+                                          color: isDark
+                                              ? Colors.white54
+                                              : Colors.black45,
                                         ),
                                       ),
                                     ],
@@ -3341,7 +3659,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                   style: TextStyle(
                                     fontSize: context.fontXLarge,
                                     fontWeight: FontWeight.bold,
-                                    color: _packetLoss == 0 ? Colors.green[400] : Colors.red[400],
+                                    color: _packetLoss == 0
+                                        ? Colors.green[400]
+                                        : Colors.red[400],
                                   ),
                                 ),
                               ],
@@ -3351,15 +3671,17 @@ class _DashboardPageState extends State<DashboardPage> {
                             ClipRRect(
                               borderRadius: BorderRadius.circular(4),
                               child: LinearProgressIndicator(
-                                value: _packetLoss == 0 ? 1.0 : (_packetLoss / 100).clamp(0.0, 1.0),
+                                value: _packetLoss == 0
+                                    ? 1.0
+                                    : (_packetLoss / 100).clamp(0.0, 1.0),
                                 minHeight: 8,
                                 backgroundColor: Colors.grey[300],
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                   _packetLoss == 0
                                       ? Colors.green[400]!
                                       : _packetLoss <= 2
-                                          ? Colors.orange[400]!
-                                          : Colors.red[400]!,
+                                      ? Colors.orange[400]!
+                                      : Colors.red[400]!,
                                 ),
                               ),
                             ),
@@ -3373,7 +3695,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       Container(
                         padding: EdgeInsets.all(context.spacingMedium),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                          color: isDark
+                              ? const Color(0xFF1E1E1E)
+                              : const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
@@ -3400,7 +3724,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                     style: TextStyle(
                                       fontSize: context.fontBody,
                                       fontWeight: FontWeight.w600,
-                                      color: isDark ? Colors.white : Colors.black87,
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black87,
                                     ),
                                   ),
                                 ),
@@ -3424,7 +3750,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                   style: TextStyle(
                                     fontSize: context.fontBody,
                                     fontWeight: FontWeight.w500,
-                                    color: isDark ? Colors.white : Colors.black87,
+                                    color: isDark
+                                        ? Colors.white
+                                        : Colors.black87,
                                   ),
                                 ),
                                 const Spacer(),
@@ -3442,7 +3770,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                   style: TextStyle(
                                     fontSize: context.fontBody,
                                     fontWeight: FontWeight.w500,
-                                    color: isDark ? Colors.white : Colors.black87,
+                                    color: isDark
+                                        ? Colors.white
+                                        : Colors.black87,
                                   ),
                                 ),
                                 const Spacer(),
@@ -3479,10 +3809,14 @@ class _DashboardPageState extends State<DashboardPage> {
                                               height: 8,
                                               decoration: BoxDecoration(
                                                 color: Colors.green[400],
-                                                borderRadius: const BorderRadius.only(
-                                                  topLeft: Radius.circular(4),
-                                                  bottomLeft: Radius.circular(4),
-                                                ),
+                                                borderRadius:
+                                                    const BorderRadius.only(
+                                                      topLeft: Radius.circular(
+                                                        4,
+                                                      ),
+                                                      bottomLeft:
+                                                          Radius.circular(4),
+                                                    ),
                                               ),
                                             ),
                                           ),
@@ -3494,8 +3828,12 @@ class _DashboardPageState extends State<DashboardPage> {
                                               decoration: BoxDecoration(
                                                 color: Colors.orange[400],
                                                 borderRadius: BorderRadius.only(
-                                                  topRight: p2pCount == 0 ? const Radius.circular(4) : Radius.zero,
-                                                  bottomRight: p2pCount == 0 ? const Radius.circular(4) : Radius.zero,
+                                                  topRight: p2pCount == 0
+                                                      ? const Radius.circular(4)
+                                                      : Radius.zero,
+                                                  bottomRight: p2pCount == 0
+                                                      ? const Radius.circular(4)
+                                                      : Radius.zero,
                                                 ),
                                               ),
                                             ),
@@ -3515,7 +3853,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       Container(
                         padding: EdgeInsets.all(context.spacingMedium),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                          color: isDark
+                              ? const Color(0xFF1E1E1E)
+                              : const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
@@ -3525,7 +3865,9 @@ class _DashboardPageState extends State<DashboardPage> {
                               children: [
                                 Icon(
                                   Icons.show_chart,
-                                  color: isDark ? Colors.white70 : Colors.black54,
+                                  color: isDark
+                                      ? Colors.white70
+                                      : Colors.black54,
                                   size: context.iconXSmall,
                                 ),
                                 const SizedBox(width: 6),
@@ -3534,7 +3876,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                   style: TextStyle(
                                     fontSize: context.fontBody,
                                     fontWeight: FontWeight.w600,
-                                    color: isDark ? Colors.white : Colors.black87,
+                                    color: isDark
+                                        ? Colors.white
+                                        : Colors.black87,
                                   ),
                                 ),
                               ],
@@ -3544,7 +3888,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             Container(
                               height: 60,
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF2C2C2C) : Colors.white,
+                                color: isDark
+                                    ? const Color(0xFF2C2C2C)
+                                    : Colors.white,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: _pingHistory.isEmpty
@@ -3553,23 +3899,36 @@ class _DashboardPageState extends State<DashboardPage> {
                                         '暂无数据',
                                         style: TextStyle(
                                           fontSize: context.fontSmall,
-                                          color: isDark ? Colors.white54 : Colors.black45,
+                                          color: isDark
+                                              ? Colors.white54
+                                              : Colors.black45,
                                         ),
                                       ),
                                     )
                                   : Padding(
-                                      padding: EdgeInsets.all(context.spacingXSmall),
+                                      padding: EdgeInsets.all(
+                                        context.spacingXSmall,
+                                      ),
                                       child: Row(
                                         children: List.generate(
-                                          _pingHistory.length > 100 ? 100 : _pingHistory.length,
+                                          _pingHistory.length > 100
+                                              ? 100
+                                              : _pingHistory.length,
                                           (index) {
-                                            bool isSuccess = _pingHistory[index];
+                                            bool isSuccess =
+                                                _pingHistory[index];
                                             return Expanded(
                                               child: Container(
-                                                margin: const EdgeInsets.symmetric(horizontal: 0.5),
+                                                margin:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 0.5,
+                                                    ),
                                                 decoration: BoxDecoration(
-                                                  color: isSuccess ? Colors.green[400] : Colors.red[400],
-                                                  borderRadius: BorderRadius.circular(1),
+                                                  color: isSuccess
+                                                      ? Colors.green[400]
+                                                      : Colors.red[400],
+                                                  borderRadius:
+                                                      BorderRadius.circular(1),
                                                 ),
                                               ),
                                             );
@@ -3596,7 +3955,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                   '成功',
                                   style: TextStyle(
                                     fontSize: context.fontSmall,
-                                    color: isDark ? Colors.white70 : Colors.black54,
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.black54,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -3613,7 +3974,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                   '失败',
                                   style: TextStyle(
                                     fontSize: context.fontSmall,
-                                    color: isDark ? Colors.white70 : Colors.black54,
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.black54,
                                   ),
                                 ),
                               ],
@@ -3633,7 +3996,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             backgroundColor: primaryColor.withOpacity(0.15),
                             foregroundColor: primaryColor,
                             elevation: 0,
-                            padding: EdgeInsets.symmetric(vertical: context.spacingMedium),
+                            padding: EdgeInsets.symmetric(
+                              vertical: context.spacingMedium,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -3729,7 +4094,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             style: TextStyle(
                               fontSize: context.fontLarge,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A1A),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -3745,10 +4112,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.close,
-                        color: primaryColor,
-                      ),
+                      icon: Icon(Icons.close, color: primaryColor),
                     ),
                   ],
                 ),
@@ -3763,29 +4127,81 @@ class _DashboardPageState extends State<DashboardPage> {
                     children: [
                       // 基本信息
                       _buildSectionTitle(isDark, '基本信息'),
-                      _buildDeviceInfoItem(isDark, '虚拟 IP', deviceInfo['virtualIp'] ?? '--'),
-                      _buildDeviceInfoItem(isDark, '虚拟网关', deviceInfo['virtualGateway'] ?? '--'),
-                      _buildDeviceInfoItem(isDark, '虚拟网段', deviceInfo['virtualNetmask'] ?? '--'),
-                      _buildDeviceInfoItem(isDark, '虚拟网络', deviceInfo['virtualNetwork'] ?? '--'),
-                      _buildDeviceInfoItem(isDark, '广播地址', deviceInfo['broadcastIp'] ?? '--'),
-                      _buildDeviceInfoItem(isDark, '连接状态', deviceInfo['status'] ?? '--'),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '虚拟 IP',
+                        deviceInfo['virtualIp'] ?? '--',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '虚拟网关',
+                        deviceInfo['virtualGateway'] ?? '--',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '虚拟网段',
+                        deviceInfo['virtualNetmask'] ?? '--',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '虚拟网络',
+                        deviceInfo['virtualNetwork'] ?? '--',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '广播地址',
+                        deviceInfo['broadcastIp'] ?? '--',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '连接状态',
+                        deviceInfo['status'] ?? '--',
+                      ),
 
                       const SizedBox(height: 16),
 
                       // 网络信息
                       _buildSectionTitle(isDark, '网络信息'),
-                      _buildDeviceInfoItem(isDark, 'NAT 类型', deviceInfo['natType'] ?? '--'),
-                      _buildDeviceInfoItem(isDark, '公网 IP', (deviceInfo['publicIps'] as List?)?.join(', ') ?? '--'),
-                      _buildDeviceInfoItem(isDark, '本地 IP', deviceInfo['localIpv4'] ?? '--'),
-                      _buildDeviceInfoItem(isDark, 'IPv6', deviceInfo['ipv6'] ?? '--'),
-                      _buildDeviceInfoItem(isDark, '服务器地址', deviceInfo['connectServer'] ?? '--'),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        'NAT 类型',
+                        deviceInfo['natType'] ?? '--',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '公网 IP',
+                        (deviceInfo['publicIps'] as List?)?.join(', ') ?? '--',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '本地 IP',
+                        deviceInfo['localIpv4'] ?? '--',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        'IPv6',
+                        deviceInfo['ipv6'] ?? '--',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '服务器地址',
+                        deviceInfo['connectServer'] ?? '--',
+                      ),
 
                       const SizedBox(height: 16),
 
                       // 流量统计
                       _buildSectionTitle(isDark, '流量统计'),
-                      _buildDeviceInfoItem(isDark, '上传流量', deviceInfo['upStream'] ?? '0B'),
-                      _buildDeviceInfoItem(isDark, '下载流量', deviceInfo['downStream'] ?? '0B'),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '上传流量',
+                        deviceInfo['upStream'] ?? '0B',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '下载流量',
+                        deviceInfo['downStream'] ?? '0B',
+                      ),
                     ],
                   ),
                 ),
@@ -3802,7 +4218,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       backgroundColor: primaryColor.withOpacity(0.15),
                       foregroundColor: primaryColor,
                       elevation: 0,
-                      padding: EdgeInsets.symmetric(vertical: context.spacingMedium),
+                      padding: EdgeInsets.symmetric(
+                        vertical: context.spacingMedium,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -3998,7 +4416,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             style: TextStyle(
                               fontSize: context.fontLarge,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A1A),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -4014,10 +4434,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.close,
-                        color: primaryColor,
-                      ),
+                      icon: Icon(Icons.close, color: primaryColor),
                     ),
                   ],
                 ),
@@ -4034,69 +4451,196 @@ class _DashboardPageState extends State<DashboardPage> {
                       _buildSectionTitle(isDark, '基本信息'),
                       _buildDeviceInfoItem(isDark, '配置名称', config.configName),
                       _buildDeviceInfoItem(isDark, '设备名称', config.deviceName),
-                      _buildDeviceInfoItem(isDark, '虚拟 IP', config.virtualIPv4.isEmpty ? '自动分配' : config.virtualIPv4),
-                      _buildDeviceInfoItem(isDark, '设备 ID', config.deviceID.isEmpty ? '自动生成' : config.deviceID),
-                      _buildDeviceInfoItem(isDark, '本地物理网卡', config.localDev.isEmpty ? '系统自动路由' : config.localDev),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '虚拟 IP',
+                        config.virtualIPv4.isEmpty
+                            ? '自动分配'
+                            : config.virtualIPv4,
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '设备 ID',
+                        config.deviceID.isEmpty ? '自动生成' : config.deviceID,
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '本地物理网卡',
+                        config.localDev.isEmpty ? '系统自动路由' : config.localDev,
+                      ),
 
                       const SizedBox(height: 16),
 
                       // 服务器配置
                       _buildSectionTitle(isDark, '服务器配置'),
-                      _buildDeviceInfoItem(isDark, '服务器地址', config.serverAddress),
-                      _buildDeviceInfoItem(isDark, 'Token', config.token.isEmpty ? '未设置' : '********'),
-                      _buildDeviceInfoItem(isDark, '连接协议', config.protocol.isEmpty ? 'UDP' : config.protocol.toUpperCase()),
-                      _buildDeviceInfoItem(isDark, 'STUN 服务器', config.stunServers.isEmpty ? '默认' : config.stunServers.join(', ')),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '服务器地址',
+                        config.serverAddress,
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        'Token',
+                        config.token.isEmpty ? '未设置' : '********',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '连接协议',
+                        config.protocol.isEmpty
+                            ? 'UDP'
+                            : config.protocol.toUpperCase(),
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        'STUN 服务器',
+                        config.stunServers.isEmpty
+                            ? '默认'
+                            : config.stunServers.join(', '),
+                      ),
 
                       const SizedBox(height: 16),
 
                       // 安全配置
                       _buildSectionTitle(isDark, '安全配置'),
-                      _buildDeviceInfoItem(isDark, '组网密码', config.groupPassword.isEmpty ? '未设置' : '********'),
-                      _buildDeviceInfoItem(isDark, '加密算法', config.encryptionAlgorithm.isEmpty ? '默认' : config.encryptionAlgorithm.toUpperCase()),
-                      _buildDeviceInfoItem(isDark, '服务器加密', config.isServerEncrypted ? '已启用' : '未启用'),
-                      _buildDeviceInfoItem(isDark, '数据指纹验证', config.dataFingerprintVerification ? '已启用' : '未启用'),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '组网密码',
+                        config.groupPassword.isEmpty ? '未设置' : '********',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '加密算法',
+                        config.encryptionAlgorithm.isEmpty
+                            ? '默认'
+                            : config.encryptionAlgorithm.toUpperCase(),
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '服务器加密',
+                        config.isServerEncrypted ? '已启用' : '未启用',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '数据指纹验证',
+                        config.dataFingerprintVerification ? '已启用' : '未启用',
+                      ),
 
                       const SizedBox(height: 16),
 
                       // 网络配置
                       _buildSectionTitle(isDark, '网络配置'),
-                      _buildDeviceInfoItem(isDark, 'MTU', config.mtu.toString()),
-                      _buildDeviceInfoItem(isDark, '端口', config.ports.isEmpty ? '自动' : config.ports.join(', ')),
-                      _buildDeviceInfoItem(isDark, '虚拟网卡名称', config.virtualNetworkCardName.isEmpty ? '默认' : config.virtualNetworkCardName),
-                      _buildDeviceInfoItem(isDark, 'DNS', config.dns.isEmpty ? '未设置' : config.dns.join(', ')),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        'MTU',
+                        config.mtu.toString(),
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '端口',
+                        config.ports.isEmpty ? '自动' : config.ports.join(', '),
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '虚拟网卡名称',
+                        config.virtualNetworkCardName.isEmpty
+                            ? '默认'
+                            : config.virtualNetworkCardName,
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        'DNS',
+                        config.dns.isEmpty ? '未设置' : config.dns.join(', '),
+                      ),
 
                       const SizedBox(height: 16),
 
                       // 高级配置
                       _buildSectionTitle(isDark, '高级配置'),
-                      _buildDeviceInfoItem(isDark, '打洞模式', config.punchModel.isEmpty ? '默认' : config.punchModel),
-                      _buildDeviceInfoItem(isDark, '通道类型', config.useChannelType.isEmpty ? '默认' : config.useChannelType),
-                      _buildDeviceInfoItem(isDark, '压缩算法', config.compressor.isEmpty ? '未启用' : config.compressor),
-                      _buildDeviceInfoItem(isDark, '优先延迟', config.firstLatency ? '已启用' : '未启用'),
-                      _buildDeviceInfoItem(isDark, '禁用代理', config.noInIpProxy ? '是' : '否'),
-                      _buildDeviceInfoItem(isDark, '允许 WireGuard', config.allowWg ? '是' : '否'),
-                      _buildDeviceInfoItem(isDark, '禁用客户端中继', config.disableRelay ? '是' : '否'),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '打洞模式',
+                        config.punchModel.isEmpty ? '默认' : config.punchModel,
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '通道类型',
+                        config.useChannelType.isEmpty
+                            ? '默认'
+                            : config.useChannelType,
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '压缩算法',
+                        config.compressor.isEmpty ? '未启用' : config.compressor,
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '优先延迟',
+                        config.firstLatency ? '已启用' : '未启用',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '禁用代理',
+                        config.noInIpProxy ? '是' : '否',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '允许 WireGuard',
+                        config.allowWg ? '是' : '否',
+                      ),
+                      _buildDeviceInfoItem(
+                        isDark,
+                        '禁用客户端中继',
+                        config.disableRelay ? '是' : '否',
+                      ),
                       if (!Platform.isAndroid && !Platform.isIOS)
-                        _buildLongDeviceInfoItem(isDark, 'Hook命令', config.hook.isEmpty ? '未设置' : config.hook),
+                        _buildLongDeviceInfoItem(
+                          isDark,
+                          'Hook命令',
+                          config.hook.isEmpty ? '未设置' : config.hook,
+                        ),
 
-                      if (config.inIps.isNotEmpty || config.outIps.isNotEmpty || config.portMappings.isNotEmpty) ...[
+                      if (config.inIps.isNotEmpty ||
+                          config.outIps.isNotEmpty ||
+                          config.portMappings.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         _buildSectionTitle(isDark, '路由与映射'),
                         if (config.inIps.isNotEmpty)
-                          _buildDeviceInfoItem(isDark, '对端网段', config.inIps.join(', ')),
+                          _buildDeviceInfoItem(
+                            isDark,
+                            '对端网段',
+                            config.inIps.join(', '),
+                          ),
                         if (config.outIps.isNotEmpty)
-                          _buildDeviceInfoItem(isDark, '本地网段', config.outIps.join(', ')),
+                          _buildDeviceInfoItem(
+                            isDark,
+                            '本地网段',
+                            config.outIps.join(', '),
+                          ),
                         if (config.portMappings.isNotEmpty)
-                          _buildDeviceInfoItem(isDark, '端口映射', config.portMappings.join(', ')),
+                          _buildDeviceInfoItem(
+                            isDark,
+                            '端口映射',
+                            config.portMappings.join(', '),
+                          ),
                       ],
 
-                      if (config.simulatedPacketLossRate > 0 || config.simulatedLatency > 0) ...[
+                      if (config.simulatedPacketLossRate > 0 ||
+                          config.simulatedLatency > 0) ...[
                         const SizedBox(height: 16),
                         _buildSectionTitle(isDark, '模拟测试'),
                         if (config.simulatedPacketLossRate > 0)
-                          _buildDeviceInfoItem(isDark, '模拟丢包率', '${config.simulatedPacketLossRate}%'),
+                          _buildDeviceInfoItem(
+                            isDark,
+                            '模拟丢包率',
+                            '${config.simulatedPacketLossRate}%',
+                          ),
                         if (config.simulatedLatency > 0)
-                          _buildDeviceInfoItem(isDark, '模拟延迟', '${config.simulatedLatency}ms'),
+                          _buildDeviceInfoItem(
+                            isDark,
+                            '模拟延迟',
+                            '${config.simulatedLatency}ms',
+                          ),
                       ],
                     ],
                   ),
@@ -4114,7 +4658,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       backgroundColor: primaryColor.withOpacity(0.15),
                       foregroundColor: primaryColor,
                       elevation: 0,
-                      padding: EdgeInsets.symmetric(vertical: context.spacingMedium),
+                      padding: EdgeInsets.symmetric(
+                        vertical: context.spacingMedium,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -4137,7 +4683,11 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   // 计算网络质量综合得分
-  int _calculateQualityScore(double p2pPercentage, int p2pCount, int relayCount) {
+  int _calculateQualityScore(
+    double p2pPercentage,
+    int p2pCount,
+    int relayCount,
+  ) {
     int score = 100;
 
     // 延迟评分（最多扣30分）
@@ -4323,7 +4873,9 @@ class _DashboardPageState extends State<DashboardPage> {
                             style: TextStyle(
                               fontSize: context.fontLarge,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A1A),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -4339,10 +4891,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(
-                        Icons.close,
-                        color: primaryColor,
-                      ),
+                      icon: Icon(Icons.close, color: primaryColor),
                     ),
                   ],
                 ),
@@ -4352,7 +4901,9 @@ class _DashboardPageState extends State<DashboardPage> {
               Flexible(
                 child: deviceList.isEmpty
                     ? Padding(
-                        padding: EdgeInsets.all(context.spacingXLarge + context.spacingMedium),
+                        padding: EdgeInsets.all(
+                          context.spacingXLarge + context.spacingMedium,
+                        ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -4395,7 +4946,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                     style: TextStyle(
                                       fontSize: context.fontBody,
                                       fontWeight: FontWeight.w600,
-                                      color: isDark ? Colors.white70 : Colors.black54,
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.black54,
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -4420,7 +4973,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
                               // 如果是第一个离线设备，显示离线设备标题
                               bool showOfflineTitle = false;
-                              if (!isOnline && (index == 0 || deviceList[index - 1]['isOnline'])) {
+                              if (!isOnline &&
+                                  (index == 0 ||
+                                      deviceList[index - 1]['isOnline'])) {
                                 showOfflineTitle = true;
                               }
 
@@ -4446,7 +5001,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                           style: TextStyle(
                                             fontSize: context.fontBody,
                                             fontWeight: FontWeight.w600,
-                                            color: isDark ? Colors.white70 : Colors.black54,
+                                            color: isDark
+                                                ? Colors.white70
+                                                : Colors.black54,
                                           ),
                                         ),
                                         const SizedBox(width: 8),
@@ -4466,19 +5023,28 @@ class _DashboardPageState extends State<DashboardPage> {
                                   // 设备卡片
                                   Container(
                                     margin: const EdgeInsets.only(bottom: 12),
-                                    padding: EdgeInsets.all(context.spacingMedium),
+                                    padding: EdgeInsets.all(
+                                      context.spacingMedium,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF5F5F5),
+                                      color: isDark
+                                          ? const Color(0xFF1E1E1E)
+                                          : const Color(0xFFF5F5F5),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                         color: isOnline
-                                            ? Colors.green[400]!.withOpacity(0.3)
-                                            : Colors.grey[300]!.withOpacity(0.3),
+                                            ? Colors.green[400]!.withOpacity(
+                                                0.3,
+                                              )
+                                            : Colors.grey[300]!.withOpacity(
+                                                0.3,
+                                              ),
                                         width: 1,
                                       ),
                                     ),
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         // 第一行：设备名和状态
                                         Row(
@@ -4486,34 +5052,50 @@ class _DashboardPageState extends State<DashboardPage> {
                                             Icon(
                                               Icons.computer,
                                               size: context.iconSmall,
-                                              color: isOnline ? Colors.green[400] : Colors.grey[400],
+                                              color: isOnline
+                                                  ? Colors.green[400]
+                                                  : Colors.grey[400],
                                             ),
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
-                                                device['name'].isNotEmpty ? device['name'] : '未命名设备',
+                                                device['name'].isNotEmpty
+                                                    ? device['name']
+                                                    : '未命名设备',
                                                 style: TextStyle(
                                                   fontSize: context.fontMedium,
                                                   fontWeight: FontWeight.w600,
-                                                  color: isDark ? Colors.white : Colors.black87,
+                                                  color: isDark
+                                                      ? Colors.white
+                                                      : Colors.black87,
                                                 ),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                             Container(
-                                              padding: EdgeInsets.symmetric(horizontal: context.spacingXSmall, vertical: context.spacingXSmall / 2),
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal:
+                                                    context.spacingXSmall,
+                                                vertical:
+                                                    context.spacingXSmall / 2,
+                                              ),
                                               decoration: BoxDecoration(
                                                 color: isOnline
-                                                    ? Colors.green[400]!.withOpacity(0.2)
-                                                    : Colors.grey[600]!.withOpacity(0.2),
-                                                borderRadius: BorderRadius.circular(8),
+                                                    ? Colors.green[400]!
+                                                          .withOpacity(0.2)
+                                                    : Colors.grey[600]!
+                                                          .withOpacity(0.2),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                               ),
                                               child: Text(
                                                 isOnline ? '在线' : '离线',
                                                 style: TextStyle(
                                                   fontSize: context.fontSmall,
                                                   fontWeight: FontWeight.bold,
-                                                  color: isOnline ? Colors.green[400] : Colors.grey[600],
+                                                  color: isOnline
+                                                      ? Colors.green[400]
+                                                      : Colors.grey[600],
                                                 ),
                                               ),
                                             ),
@@ -4526,14 +5108,18 @@ class _DashboardPageState extends State<DashboardPage> {
                                             Icon(
                                               Icons.language,
                                               size: context.iconXSmall,
-                                              color: isDark ? Colors.white54 : Colors.black45,
+                                              color: isDark
+                                                  ? Colors.white54
+                                                  : Colors.black45,
                                             ),
                                             const SizedBox(width: 8),
                                             Text(
                                               'IP: ',
                                               style: TextStyle(
                                                 fontSize: context.fontBody,
-                                                color: isDark ? Colors.white54 : Colors.black45,
+                                                color: isDark
+                                                    ? Colors.white54
+                                                    : Colors.black45,
                                               ),
                                             ),
                                             Text(
@@ -4541,33 +5127,51 @@ class _DashboardPageState extends State<DashboardPage> {
                                               style: TextStyle(
                                                 fontSize: context.fontBody,
                                                 fontWeight: FontWeight.w500,
-                                                color: isDark ? Colors.white70 : Colors.black54,
+                                                color: isDark
+                                                    ? Colors.white70
+                                                    : Colors.black54,
                                               ),
                                             ),
                                             const SizedBox(width: 8),
                                             InkWell(
                                               onTap: () {
-                                                Clipboard.setData(ClipboardData(text: device['ip']));
-                                                showTopToast(context, '${device['ip']} 已复制', isSuccess: true);
+                                                Clipboard.setData(
+                                                  ClipboardData(
+                                                    text: device['ip'],
+                                                  ),
+                                                );
+                                                showTopToast(
+                                                  context,
+                                                  '${device['ip']} 已复制',
+                                                  isSuccess: true,
+                                                );
                                               },
                                               child: Container(
-                                                padding: EdgeInsets.all(context.spacingXSmall / 2),
+                                                padding: EdgeInsets.all(
+                                                  context.spacingXSmall / 2,
+                                                ),
                                                 decoration: BoxDecoration(
                                                   color: isDark
-                                                      ? Colors.white.withOpacity(0.1)
-                                                      : Colors.black.withOpacity(0.05),
-                                                  borderRadius: BorderRadius.circular(4),
+                                                      ? Colors.white
+                                                            .withOpacity(0.1)
+                                                      : Colors.black
+                                                            .withOpacity(0.05),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
                                                 ),
                                                 child: Icon(
                                                   Icons.copy,
                                                   size: context.iconXSmall,
-                                                  color: isDark ? Colors.white54 : Colors.black45,
+                                                  color: isDark
+                                                      ? Colors.white54
+                                                      : Colors.black45,
                                                 ),
                                               ),
                                             ),
                                           ],
                                         ),
-                                        if (isOnline && device['p2pRelay'].isNotEmpty) ...[
+                                        if (isOnline &&
+                                            device['p2pRelay'].isNotEmpty) ...[
                                           const SizedBox(height: 8),
                                           // 第三行：连接模式、NAT类型和延迟
                                           Row(
@@ -4575,37 +5179,64 @@ class _DashboardPageState extends State<DashboardPage> {
                                               Icon(
                                                 Icons.swap_horiz,
                                                 size: context.iconXSmall,
-                                                color: isDark ? Colors.white54 : Colors.black45,
+                                                color: isDark
+                                                    ? Colors.white54
+                                                    : Colors.black45,
                                               ),
                                               const SizedBox(width: 8),
                                               Container(
-                                                padding: EdgeInsets.symmetric(horizontal: context.spacingXSmall, vertical: context.spacingXSmall / 4),
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal:
+                                                      context.spacingXSmall,
+                                                  vertical:
+                                                      context.spacingXSmall / 4,
+                                                ),
                                                 decoration: BoxDecoration(
-                                                  color: _connectionLabelColor(device['p2pRelay']).withOpacity(0.2),
-                                                  borderRadius: BorderRadius.circular(6),
+                                                  color: _connectionLabelColor(
+                                                    device['p2pRelay'],
+                                                  ).withOpacity(0.2),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
                                                 ),
                                                 child: Text(
                                                   device['p2pRelay'],
                                                   style: TextStyle(
-                                                    fontSize: context.fontXSmall,
+                                                    fontSize:
+                                                        context.fontXSmall,
                                                     fontWeight: FontWeight.bold,
-                                                    color: _connectionLabelColor(device['p2pRelay']),
+                                                    color:
+                                                        _connectionLabelColor(
+                                                          device['p2pRelay'],
+                                                        ),
                                                   ),
                                                 ),
                                               ),
-                                              if (device['natType'].isNotEmpty) ...[
+                                              if (device['natType']
+                                                  .isNotEmpty) ...[
                                                 const SizedBox(width: 8),
                                                 Container(
-                                                  padding: EdgeInsets.symmetric(horizontal: context.spacingXSmall, vertical: context.spacingXSmall / 4),
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal:
+                                                        context.spacingXSmall,
+                                                    vertical:
+                                                        context.spacingXSmall /
+                                                        4,
+                                                  ),
                                                   decoration: BoxDecoration(
-                                                    color: Colors.purple[400]!.withOpacity(0.2),
-                                                    borderRadius: BorderRadius.circular(6),
+                                                    color: Colors.purple[400]!
+                                                        .withOpacity(0.2),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
                                                   ),
                                                   child: Text(
                                                     device['natType'],
                                                     style: TextStyle(
-                                                      fontSize: context.fontXSmall,
-                                                      fontWeight: FontWeight.bold,
+                                                      fontSize:
+                                                          context.fontXSmall,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       color: Colors.purple[400],
                                                     ),
                                                   ),
@@ -4613,17 +5244,28 @@ class _DashboardPageState extends State<DashboardPage> {
                                               ],
                                               const SizedBox(width: 8),
                                               Container(
-                                                padding: EdgeInsets.symmetric(horizontal: context.spacingXSmall, vertical: context.spacingXSmall / 4),
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal:
+                                                      context.spacingXSmall,
+                                                  vertical:
+                                                      context.spacingXSmall / 4,
+                                                ),
                                                 decoration: BoxDecoration(
-                                                  color: _getLatencyColor(device['rtValue']).withOpacity(0.2),
-                                                  borderRadius: BorderRadius.circular(6),
+                                                  color: _getLatencyColor(
+                                                    device['rtValue'],
+                                                  ).withOpacity(0.2),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
                                                 ),
                                                 child: Text(
                                                   device['rt'],
                                                   style: TextStyle(
-                                                    fontSize: context.fontXSmall,
+                                                    fontSize:
+                                                        context.fontXSmall,
                                                     fontWeight: FontWeight.bold,
-                                                    color: _getLatencyColor(device['rtValue']),
+                                                    color: _getLatencyColor(
+                                                      device['rtValue'],
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -4652,7 +5294,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       backgroundColor: primaryColor.withOpacity(0.15),
                       foregroundColor: primaryColor,
                       elevation: 0,
-                      padding: EdgeInsets.symmetric(vertical: context.spacingMedium),
+                      padding: EdgeInsets.symmetric(
+                        vertical: context.spacingMedium,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

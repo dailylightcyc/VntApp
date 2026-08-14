@@ -13,7 +13,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     
     // MARK: - Properties
     
-    private let logger = OSLog(subsystem: "top.wherewego.vntApp.tunnel", category: "Tunnel")
+    private let logger = OSLog(subsystem: "top.daylight.vnt.www.tunnel", category: "Tunnel")
     private var tunnelFd: Int32?
     private var isRunning = false
     private var tunnelQueue: DispatchQueue?
@@ -117,7 +117,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
             vnt_ios_set_log_level(2) // Info级别
             
             // 在后台队列启动VNT
-            let queue = DispatchQueue(label: "top.wherewego.vntApp.tunnel.worker", qos: .userInitiated)
+            let queue = DispatchQueue(label: "top.daylight.vnt.www.tunnel.worker", qos: .userInitiated)
             self.tunnelQueue = queue
             
             queue.async {
@@ -286,7 +286,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
         }
         
         // 尝试从UserDefaults读取（App Group共享）
-        if let defaults = UserDefaults(suiteName: "group.top.wherewego.vntApp") {
+        if let defaults = UserDefaults(suiteName: "group.top.daylight.vnt.www") {
             return VNTConfig(
                 serverAddress: defaults.string(forKey: "serverAddress") ?? VNTConfig.default.serverAddress,
                 token: defaults.string(forKey: "token") ?? VNTConfig.default.token,
@@ -333,14 +333,14 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     
     private func createError(code: Int, message: String) -> NSError {
         return NSError(
-            domain: "top.wherewego.vntApp.tunnel",
+            domain: "top.daylight.vnt.www.tunnel",
             code: code,
             userInfo: [NSLocalizedDescriptionKey: message]
         )
     }
     
     private func getLogDirectory() -> String? {
-        if let groupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.top.wherewego.vntApp") {
+        if let groupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.top.daylight.vnt.www") {
             let logDir = groupURL.appendingPathComponent("logs").path
             try? FileManager.default.createDirectory(atPath: logDir, withIntermediateDirectories: true)
             return logDir

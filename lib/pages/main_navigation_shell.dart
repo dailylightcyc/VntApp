@@ -9,7 +9,6 @@ import 'package:vnt_app/pages/dashboard_page.dart';
 import 'package:vnt_app/pages/room_page.dart';
 import 'package:vnt_app/pages/config_list_page.dart';
 import 'package:vnt_app/pages/settings_page.dart';
-import 'package:vnt_app/pages/about_page.dart';
 import 'package:vnt_app/vnt/vnt_manager.dart';
 import 'package:vnt_app/utils/toast_utils.dart';
 import 'dart:isolate';
@@ -39,11 +38,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
   // 导航项配置
   static const List<_NavItem> _navItems = [
-    _NavItem(icon: Icons.dashboard_outlined, activeIcon: Icons.dashboard, label: '仪表盘'),
-    _NavItem(icon: Icons.meeting_room_outlined, activeIcon: Icons.meeting_room, label: '房间'),
-    _NavItem(icon: Icons.folder_outlined, activeIcon: Icons.folder, label: '配置'),
-    _NavItem(icon: Icons.settings_outlined, activeIcon: Icons.settings, label: '设置'),
-    _NavItem(icon: Icons.info_outline, activeIcon: Icons.info, label: '关于'),
+    _NavItem(
+        icon: Icons.dashboard_outlined,
+        activeIcon: Icons.dashboard,
+        label: '仪表盘'),
+    _NavItem(
+        icon: Icons.meeting_room_outlined,
+        activeIcon: Icons.meeting_room,
+        label: '房间'),
+    _NavItem(
+        icon: Icons.folder_outlined, activeIcon: Icons.folder, label: '配置'),
+    _NavItem(
+        icon: Icons.settings_outlined, activeIcon: Icons.settings, label: '设置'),
   ];
 
   @override
@@ -168,8 +174,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         builder: (BuildContext ctx) {
           dialogContext = ctx;
           return Dialog(
-            backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: isDark
+                ? AppTheme.darkCardBackground
+                : AppTheme.lightCardBackground,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -180,7 +189,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   Text(
                     '正在连接 ${config.configName} ...',
                     style: TextStyle(
-                      color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                      color: isDark
+                          ? AppTheme.darkTextPrimary
+                          : AppTheme.lightTextPrimary,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -217,7 +228,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             setState(() {
               _selectedConfig = config;
             });
-            showTopToast(context, '[${config.configName}] 连接成功', isSuccess: true);
+            showTopToast(context, '[${config.configName}] 连接成功',
+                isSuccess: true);
             // 连接成功，更新磁贴和小组件状态
             if (Platform.isAndroid) {
               VntAppCall.updateWidgetAndTile(true);
@@ -227,7 +239,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             await SystemTrayManager().updateTooltip();
           } else {
             // 重连成功（onece 已经是 false，说明之前已经连接过）
-            showTopToast(context, '[${config.configName}] 已重新连接到服务器', isSuccess: true);
+            showTopToast(context, '[${config.configName}] 已重新连接到服务器',
+                isSuccess: true);
           }
         } else if (msg == 'stop') {
           vntManager.remove(config.itemKey);
@@ -236,7 +249,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             closeDialog(); // 关闭连接中对话框
           }
           // 统一显示"服务已停止"提示
-          showTopToast(context, '[${config.configName}] 服务已停止', isSuccess: false);
+          showTopToast(context, '[${config.configName}] 服务已停止',
+              isSuccess: false);
           // 服务停止，更新磁贴和小组件状态
           if (Platform.isAndroid) {
             VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
@@ -247,7 +261,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         }
       } else if (msg is RustErrorInfo) {
         // Disconnect 和 Warn 类型不销毁连接，Rust 层会自动重连
-        if (msg.code == RustErrorType.disconnect || msg.code == RustErrorType.warn) {
+        if (msg.code == RustErrorType.disconnect ||
+            msg.code == RustErrorType.warn) {
           if (onece) {
             onece = false;
             closeDialog(); // 关闭连接中对话框
@@ -255,7 +270,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           _handleConnectionError(msg, config.configName);
           return;
         }
-        
+
         // 其他致命错误才销毁连接
         if (onece) {
           onece = false;
@@ -345,41 +360,44 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   Future<void> _connectViaIOSVPN(NetworkConfig config) async {
     try {
       debugPrint('[iOS VPN] Starting VPN connection for: ${config.configName}');
-      
+
       // 保存配置到App Group
       await IOSVPNService.saveConfig(
         serverAddress: config.serverAddress,
         token: config.token,
       );
-      
+
       // 启动VPN
       final success = await IOSVPNService.startVPN(
         serverAddress: config.serverAddress,
         token: config.token,
         deviceName: config.deviceName,
       );
-      
+
       if (success) {
         // iOS VPN连接成功，更新UI状态
         setState(() {
           _selectedConfig = config;
         });
-        
+
         if (mounted) {
-          showTopToast(context, '[${config.configName}] VPN连接成功', isSuccess: true);
+          showTopToast(context, '[${config.configName}] VPN连接成功',
+              isSuccess: true);
         }
-        
+
         debugPrint('[iOS VPN] Connection successful');
       } else {
         if (mounted) {
-          showTopToast(context, '[${config.configName}] VPN连接失败，请确认已添加VPN权限', isSuccess: false);
+          showTopToast(context, '[${config.configName}] VPN连接失败，请确认已添加VPN权限',
+              isSuccess: false);
         }
         debugPrint('[iOS VPN] Connection failed');
       }
     } catch (e) {
       debugPrint('[iOS VPN] Connection error: $e');
       if (mounted) {
-        showTopToast(context, '[${config.configName}] VPN连接异常: $e', isSuccess: false);
+        showTopToast(context, '[${config.configName}] VPN连接异常: $e',
+            isSuccess: false);
       }
     }
   }
@@ -428,9 +446,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         ],
       ),
       // 底部导航栏（窄屏显示）
-      bottomNavigationBar: !showNavigationRail
-          ? _buildBottomNavigation()
-          : null,
+      bottomNavigationBar:
+          !showNavigationRail ? _buildBottomNavigation() : null,
     );
   }
 
@@ -442,7 +459,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       extended: isExpanded,
       minWidth: 80,
       minExtendedWidth: 220,
-      labelType: isExpanded ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+      labelType: isExpanded
+          ? NavigationRailLabelType.none
+          : NavigationRailLabelType.all,
       groupAlignment: -0.72,
       leading: Padding(
         padding: const EdgeInsets.fromLTRB(12, 16, 12, 24),
@@ -451,11 +470,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.asset('assets/ic_launcher.png', width: 44, height: 44),
+              child:
+                  Image.asset('assets/ic_launcher.png', width: 44, height: 44),
             ),
             if (isExpanded) ...[
               const SizedBox(width: 12),
-              Text('VNT', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+              Text('VNT',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w700)),
             ],
           ],
         ),
@@ -467,14 +491,18 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 onPressed: () => ThemeProvider.of(context)?.setThemeMode(
                   isDark ? ThemeMode.light : ThemeMode.dark,
                 ),
-                icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+                icon: Icon(isDark
+                    ? Icons.light_mode_outlined
+                    : Icons.dark_mode_outlined),
                 label: Text(isDark ? '浅色模式' : '深色模式'),
               )
             : IconButton.filledTonal(
                 onPressed: () => ThemeProvider.of(context)?.setThemeMode(
                   isDark ? ThemeMode.light : ThemeMode.dark,
                 ),
-                icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+                icon: Icon(isDark
+                    ? Icons.light_mode_outlined
+                    : Icons.dark_mode_outlined),
                 tooltip: isDark ? '浅色模式' : '深色模式',
               ),
       ),
@@ -543,11 +571,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             debugPrint('Default key: $defaultKey');
             if (defaultKey != null && defaultKey.isNotEmpty) {
               final configs = await dataPersistence.loadData();
-              final config = configs.where((c) => c.itemKey == defaultKey).firstOrNull;
+              final config =
+                  configs.where((c) => c.itemKey == defaultKey).firstOrNull;
               debugPrint('Found config: ${config?.configName}');
               if (config != null) {
                 // 直接连接，不跳转页面
-                debugPrint('Connecting to default config: ${config.configName}');
+                debugPrint(
+                    'Connecting to default config: ${config.configName}');
                 _connectToConfigDirectly(config);
                 return;
               }
@@ -596,8 +626,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             _refreshSettings = callback;
           },
         ),
-        // 4: 关于
-        const AboutPage(),
       ],
     );
   }

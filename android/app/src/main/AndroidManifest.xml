@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- VPN服务权限 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.BIND_QUICK_SETTINGS_TILE"
         tools:ignore="ProtectedPermissions" />
     <!-- 存储权限：Android 12及以下需要 -->
@@ -19,7 +20,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
-        android:name="${applicationName}"
+        android:name=".VntApplication"
         android:icon="@mipmap/ic_launcher"
         android:label="VNT"
         android:requestLegacyExternalStorage="true">
@@ -36,17 +37,18 @@
         <service
             android:name=".vpn.MyVpnService"
             android:exported="true"
+            android:foregroundServiceType="specialUse"
             android:permission="android.permission.BIND_VPN_SERVICE">
             <intent-filter>
                 <action android:name="android.net.VpnService" />
             </intent-filter>
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Maintains the user-authorized VNT VPN tunnel and virtual network interface" />
+            <meta-data
+                android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON"
+                android:value="true" />
         </service>
-        <!-- 常驻通知服务 -->
-        <service
-            android:name=".VntNotificationService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
         <service
             android:name=".MyTileService"
             android:icon="@mipmap/ic_launcher"
@@ -64,9 +66,6 @@
                 android:name="android.service.quicksettings.TOGGLEABLE_TILE"
                 android:value="true" />
         </service>
-        <meta-data
-            android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON"
-            android:value="true" />
         <!-- 开机自启接收器 -->
         <receiver
             android:name=".BootReceiver"

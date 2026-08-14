@@ -4,13 +4,14 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   bitsdojo_window_linux
-  screen_retriever
+  screen_retriever_linux
   system_tray
   url_launcher_linux
   window_manager
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
+  jni
   rust_lib_vnt_app
 )
 

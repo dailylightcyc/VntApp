@@ -7,7 +7,7 @@ project(runner LANGUAGES CXX)
 set(BINARY_NAME "vnt_app")
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
-set(APPLICATION_ID "top.wherewego.vnt_app")
+set(APPLICATION_ID "top.daylight.vnt.www")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
@@ -109,6 +109,14 @@ set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
+  COMPONENT Runtime)
+
+# Helper commands used by the capability-enabled process. bwrap must drop the
+# inherited capability; route provides compatibility on iproute2-only systems.
+install(PROGRAMS
+  "${CMAKE_CURRENT_SOURCE_DIR}/linux_cap_helpers/bwrap"
+  "${CMAKE_CURRENT_SOURCE_DIR}/linux_cap_helpers/route"
+  DESTINATION "${INSTALL_BUNDLE_LIB_DIR}/vnt_app/linux_cap_helpers"
   COMPONENT Runtime)
 
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"

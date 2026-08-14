@@ -1,0 +1,10 @@
+#!/bin/sh
+# VNT 仍使用 net-tools route 语法，在只安装 iproute2 的发行版上转换为 ip route。
+if [ "$1" = add ] && [ "$2" = -host ] && [ "$#" -eq 4 ]; then
+  exec /usr/bin/ip route add "$3/32" dev "$4"
+fi
+if [ "$1" = add ] && [ "$2" = -net ] && [ "$#" -eq 4 ]; then
+  exec /usr/bin/ip route add "$3" dev "$4"
+fi
+echo "vnt-app: unsupported route command" >&2
+exit 2

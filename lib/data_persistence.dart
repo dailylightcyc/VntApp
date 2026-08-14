@@ -533,7 +533,7 @@ class DataPersistence {
     } else {
       // Linux/macOS 使用 SharedPreferences，显示实际路径
       final home = Platform.environment['HOME'] ?? '';
-      return 'SharedPreferences ($home/.local/share/top.wherewego.vnt_app/)';
+      return 'SharedPreferences ($home/.local/share/top.daylight.vnt.www/)';
     }
   }
 }

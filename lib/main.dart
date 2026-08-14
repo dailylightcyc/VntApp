@@ -3,7 +3,6 @@ import 'dart:isolate';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:system_tray/system_tray.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:vnt_app/src/rust/frb_generated.dart';
@@ -15,9 +14,10 @@ import 'package:vnt_app/data_persistence.dart';
 import 'package:vnt_app/vnt/vnt_manager.dart';
 import 'package:vnt_app/utils/responsive_utils.dart';
 import 'package:vnt_app/utils/log_utils.dart';
-import 'package:vnt_app/network_config.dart';
 import 'package:vnt_app/system_tray_manager.dart';
 import 'package:vnt_app/config_manager.dart';
+import 'package:vnt_app/services/app_logger.dart';
+import 'package:vnt_app/services/platform_capability_service.dart';
 
 final SystemTray systemTray = SystemTray();
 final AppWindow appWindow = AppWindow();
@@ -26,11 +26,13 @@ bool _startHidden = false;
 
 bool _shouldStartHidden(List<String> args) {
   return Platform.isWindows &&
-      args.any((arg) =>
-          arg == '--startup-hidden' ||
-          arg == '--startup-tray' ||
-          arg == '--hidden' ||
-          arg == '--minimized');
+      args.any(
+        (arg) =>
+            arg == '--startup-hidden' ||
+            arg == '--startup-tray' ||
+            arg == '--hidden' ||
+            arg == '--minimized',
+      );
 }
 
 /// 检测是否是 Windows 10 或更高版本
@@ -57,33 +59,48 @@ bool isWindows10OrGreater() {
 Future<void> main(List<String> args) async {
   _startHidden = _shouldStartHidden(args);
 
-  // macOS 启动时先检查权限，在Flutter初始化之前
-  // 避免显示窗口后再提示输入密码
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await LogUtils.migrateLegacyLinuxData();
+    await AppLogger.initialize();
+    AppLogger.installGlobalHandlers();
+  } catch (error, stack) {
+    debugPrint('初始化应用日志失败: $error\n$stack');
+  }
+
+  // Linux 原生 Runner 已在 Flutter 引擎启动前请求权限，此处只校验结果。
+  if (Platform.isLinux) {
+    try {
+      await PlatformCapabilityService.prepareAtStartup();
+    } on PlatformCapabilityException catch (error, stack) {
+      AppLogger.warning('permission', '启动授权未完成：$error', stack);
+    }
+  }
+
+  // macOS 启动时检查权限，避免显示主窗口后再请求密码。
   if (Platform.isMacOS) {
-    final needsRestart = await MacOSPrivilegeManager.checkAndRequestPrivilegeOnStartup();
+    final needsRestart =
+        await MacOSPrivilegeManager.checkAndRequestPrivilegeOnStartup();
     if (needsRestart) {
       // app 正在以管理员权限重新启动，当前进程将退出
       return;
     }
   }
 
-  // 权限检查通过后，再初始化Flutter
-  WidgetsFlutterBinding.ensureInitialized();
-
-  try {
-    await copyLogConfig();
-  } catch (e) {
-    debugPrint('copyLogConfig catch $e');
-  }
-
   try {
     await copyAppropriateDll();
-  } catch (e) {
-    debugPrint('copyAppropriateDll catch $e');
+  } catch (e, stack) {
+    AppLogger.error('startup', '准备平台动态库失败: $e', stack);
   }
 
-  await RustLib.init();
-  
+  try {
+    await RustLib.init();
+  } catch (error, stack) {
+    AppLogger.error('startup', '加载 Rust 网络核心失败: $error', stack);
+    runApp(_StartupErrorApp(error: error.toString()));
+    return;
+  }
+
   // Windows: 初始化配置管理器
   if (Platform.isWindows) {
     await ConfigManager().init();
@@ -93,21 +110,21 @@ Future<void> main(List<String> args) async {
   try {
     // 使用统一的日志路径工具类获取日志目录
     final logDir = await LogUtils.getLogDirectory();
-    debugPrint('日志目录: $logDir');
+    AppLogger.info('logging', '日志目录=$logDir');
 
     // 确保日志目录存在
     final logsDirectory = Directory(logDir);
     if (!await logsDirectory.exists()) {
       await logsDirectory.create(recursive: true);
-      debugPrint('创建日志目录: $logDir');
+      AppLogger.info('logging', '已创建日志目录=$logDir');
     }
 
     // 调用Rust层初始化日志
     final configPath = await DataPersistence().getConfigFilePath();
     initLogWithPath(logDir: logDir, configPath: configPath);
-    debugPrint('日志系统初始化成功，日志目录: $logDir');
-  } catch (e) {
-    debugPrint('初始化日志系统失败: $e');
+    AppLogger.info('logging', 'Rust 核心日志初始化成功');
+  } catch (e, stack) {
+    AppLogger.error('logging', '初始化 Rust 核心日志失败: $e', stack);
   }
 
   if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
@@ -131,7 +148,7 @@ Future<void> main(List<String> args) async {
         if (windowSize != null) {
           await windowManager.setSize(windowSize);
         }
-        
+
         final windowPosition = await DataPersistence().loadWindowPosition();
         if (windowPosition != null) {
           await windowManager.setPosition(windowPosition);
@@ -162,7 +179,7 @@ Future<void> main(List<String> args) async {
       if (windowSize != null) {
         await windowManager.setSize(windowSize);
       }
-      
+
       if (windowPosition != null) {
         await windowManager.setPosition(windowPosition);
       }
@@ -179,10 +196,66 @@ Future<void> main(List<String> args) async {
   }
 
   if (Platform.isAndroid) {
-    VntAppCall.init();
+    try {
+      VntAppCall.init();
+    } catch (error, stack) {
+      AppLogger.error('startup', '初始化 Android 原生通道失败: $error', stack);
+      runApp(_StartupErrorApp(error: error.toString()));
+      return;
+    }
   }
 
   runApp(const VntApp());
+}
+
+class _StartupErrorApp extends StatelessWidget {
+  const _StartupErrorApp({required this.error});
+
+  final String error;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorSchemeSeed: AppTheme.primaryColor,
+        useMaterial3: true,
+      ),
+      home: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.error_outline, size: 40),
+                        const SizedBox(height: 16),
+                        Text(
+                          '应用初始化失败',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text('网络核心未能正常加载，请重新安装完整 APK。'),
+                        const SizedBox(height: 12),
+                        SelectableText(error),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class VntApp extends StatefulWidget {
@@ -262,7 +335,7 @@ class _VntAppState extends State<VntApp> {
         themeMode: _themeMode,
         home: PopScope(
           canPop: false,
-          onPopInvoked: (didPop) {
+          onPopInvokedWithResult: (didPop, result) {
             if (didPop) return;
             if (Platform.isAndroid) {
               VntAppCall.moveTaskToBack();
@@ -343,7 +416,9 @@ class _MainAppState extends State<MainApp> with WindowListener {
         }
 
         // 开始连接
-        debugPrint('磁贴启动：开始连接配置 [${config.configName}] (key: ${config.itemKey})');
+        debugPrint(
+          '磁贴启动：开始连接配置 [${config.configName}] (key: ${config.itemKey})',
+        );
         final receivePort = ReceivePort();
 
         receivePort.listen((msg) {
@@ -370,12 +445,13 @@ class _MainAppState extends State<MainApp> with WindowListener {
             }
           } else if (msg is RustErrorInfo) {
             // Disconnect 和 Warn 类型不销毁连接，Rust 层会自动重连
-            if (msg.code == RustErrorType.disconnect || msg.code == RustErrorType.warn) {
+            if (msg.code == RustErrorType.disconnect ||
+                msg.code == RustErrorType.warn) {
               debugPrint('磁贴启动：连接错误（非致命） - ${msg.msg}');
               // 不销毁连接，只显示提示
               return;
             }
-            
+
             // 其他致命错误才销毁连接
             vntManager.remove(config.itemKey);
             debugPrint('磁贴启动：连接错误 - ${msg.msg}');
@@ -419,7 +495,6 @@ class _MainAppState extends State<MainApp> with WindowListener {
 
   @override
   void onWindowClose() async {
-    
     // macOS 显示特殊的确认对话框（说明由于安全限制无法最小化）
     if (Platform.isMacOS) {
       final shouldClose = await _showMacOSCloseConfirmationDialog();
@@ -436,12 +511,12 @@ class _MainAppState extends State<MainApp> with WindowListener {
 
     // Windows 和 Linux 保持原有的确认逻辑
     var isClose = await DataPersistence().loadCloseApp();
-    
+
     if (isClose == null) {
       final shouldClose = await _showCloseConfirmationDialog();
       isClose = shouldClose;
     }
-    
+
     if (isClose != null) {
       if (isClose) {
         // 退出应用：先断开连接再关闭
@@ -471,18 +546,26 @@ class _MainAppState extends State<MainApp> with WindowListener {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: isDark
+              ? AppTheme.darkCardBackground
+              : AppTheme.lightCardBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Text(
             '确认退出',
             style: TextStyle(
-              color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+              color: isDark
+                  ? AppTheme.darkTextPrimary
+                  : AppTheme.lightTextPrimary,
             ),
           ),
           content: Text(
             '由于 macOS 安全限制，应用无法最小化。\n\n你确认要退出程序吗？',
             style: TextStyle(
-              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+              color: isDark
+                  ? AppTheme.darkTextSecondary
+                  : AppTheme.lightTextSecondary,
             ),
           ),
           actions: <Widget>[
@@ -492,7 +575,9 @@ class _MainAppState extends State<MainApp> with WindowListener {
                 '取消',
                 style: TextStyle(
                   fontSize: context.fontXSmall,
-                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                  color: isDark
+                      ? AppTheme.darkTextSecondary
+                      : AppTheme.lightTextSecondary,
                 ),
               ),
             ),
@@ -505,7 +590,10 @@ class _MainAppState extends State<MainApp> with WindowListener {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: Text('退出应用', style: TextStyle(fontSize: context.fontXSmall)),
+              child: Text(
+                '退出应用',
+                style: TextStyle(fontSize: context.fontXSmall),
+              ),
             ),
           ],
         );
@@ -525,12 +613,18 @@ class _MainAppState extends State<MainApp> with WindowListener {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setState) {
             return AlertDialog(
-              backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              backgroundColor: isDark
+                  ? AppTheme.darkCardBackground
+                  : AppTheme.lightCardBackground,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               title: Text(
                 '确认关闭',
                 style: TextStyle(
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  color: isDark
+                      ? AppTheme.darkTextPrimary
+                      : AppTheme.lightTextPrimary,
                 ),
               ),
               content: Column(
@@ -539,7 +633,9 @@ class _MainAppState extends State<MainApp> with WindowListener {
                   Text(
                     '你确定要关闭应用吗？',
                     style: TextStyle(
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -558,7 +654,9 @@ class _MainAppState extends State<MainApp> with WindowListener {
                         '记住此操作',
                         style: TextStyle(
                           fontSize: context.fontXSmall,
-                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
                         ),
                       ),
                     ],
@@ -572,7 +670,9 @@ class _MainAppState extends State<MainApp> with WindowListener {
                     '隐藏到托盘',
                     style: TextStyle(
                       fontSize: context.fontXSmall,
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
                     ),
                   ),
                 ),
@@ -585,7 +685,10 @@ class _MainAppState extends State<MainApp> with WindowListener {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text('退出应用', style: TextStyle(fontSize: context.fontXSmall)),
+                  child: Text(
+                    '退出应用',
+                    style: TextStyle(fontSize: context.fontXSmall),
+                  ),
                 ),
               ],
             );
@@ -612,7 +715,7 @@ class _MainAppState extends State<MainApp> with WindowListener {
 
 Future<void> initSystemTray() async {
   String path;
-  
+
   if (Platform.isLinux) {
     // Linux 复制到 /tmp 并设置普通用户可读权限
     try {
@@ -694,23 +797,4 @@ Future<void> copyAppropriateDll() async {
   final dllFile = File('wintun.dll');
   final sourceFile = File(dllPath);
   await sourceFile.copy(dllFile.path);
-}
-
-Future<void> copyLogConfig() async {
-  if (!Platform.isWindows && !Platform.isMacOS && !Platform.isLinux) {
-    return;
-  }
-  final logConfigFile = File('logs/log4rs.yaml');
-  if (!logConfigFile.parent.existsSync()) {
-    await logConfigFile.parent.create();
-  }
-
-  if (await logConfigFile.exists()) {
-    debugPrint('日志配置已存在');
-    return;
-  }
-
-  final byteData = await rootBundle.load('assets/log4rs.yaml');
-  await logConfigFile.writeAsBytes(byteData.buffer
-      .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
 }

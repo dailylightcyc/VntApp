@@ -9,6 +9,8 @@ import 'package:flutter/services.dart';
 import 'package:vnt_app/network_config.dart';
 import 'package:vnt_app/src/rust/api/vnt_api.dart';
 import 'package:vnt_app/utils/ip_utils.dart';
+import 'package:vnt_app/services/app_logger.dart';
+import 'package:vnt_app/services/platform_capability_service.dart';
 
 /// macOS 权限管理器
 class MacOSPrivilegeManager {
@@ -40,15 +42,16 @@ class MacOSPrivilegeManager {
       final appBundlePath = _getAppBundlePath(executablePath);
 
       if (appBundlePath == null) {
+        AppLogger.error('permission', '无法从可执行文件定位 macOS .app：$executablePath');
         return false;
       }
-
 
       // 构建 AppleScript 脚本
       // 如果需要显示提示，添加友好的提示信息
       String script;
       if (showPrompt) {
-        script = '''
+        script =
+            '''
 tell application "System Events"
     display dialog "VNT 需要管理员权限来创建虚拟网络设备。\\n\\n授权后将自动重启应用。" buttons {"取消", "授权"} default button "授权" with icon caution
     if button returned of result is "授权" then
@@ -58,21 +61,28 @@ end tell
 ''';
       } else {
         // 直接请求权限，不显示额外提示
-        script = 'do shell script "\\"$executablePath\\" > /dev/null 2>&1 &" with administrator privileges';
+        script =
+            'do shell script "\\"$executablePath\\" > /dev/null 2>&1 &" with administrator privileges';
       }
 
       final result = await Process.run('osascript', ['-e', script]);
 
       if (result.exitCode == 0) {
+        AppLogger.info('permission', 'macOS 管理员授权成功，正在重启应用');
         // 延迟退出当前 app，给新 app 启动的时间
         Future.delayed(const Duration(milliseconds: 500), () {
           exit(0);
         });
         return true;
       } else {
+        AppLogger.error(
+          'permission',
+          'macOS 管理员授权失败，exit=${result.exitCode}，stderr=${result.stderr}',
+        );
         return false;
       }
-    } catch (e) {
+    } catch (e, stack) {
+      AppLogger.error('permission', 'macOS 权限请求异常: $e', stack);
       return false;
     }
   }
@@ -87,7 +97,7 @@ end tell
       return null;
     }
 
-    return executablePath.substring(0, contentsIndex) + '.app';
+    return executablePath.substring(0, contentsIndex);
   }
 
   /// 启动时检查并请求权限（用于 app 启动时调用）
@@ -113,7 +123,7 @@ end tell
 
     final hasPrivilege = await hasRootPrivilege();
     if (hasPrivilege) {
-      print('✓ 已有管理员权限');
+      AppLogger.info('permission', 'macOS 管理员权限检查通过');
       return false;
     }
 
@@ -134,71 +144,98 @@ class VntBox {
   });
   static Future<VntBox> create(NetworkConfig config, SendPort uiCall) async {
     var vntConfig = VntConfig(
-        tap: false,
-        token: config.token,
-        deviceId: config.deviceID,
-        name: config.deviceName,
-        serverAddressStr: config.serverAddress,
-        nameServers: config.dns,
-        stunServer: config.stunServers,
-        inIps: config.inIps.map((v) => IpUtils.parseInIpString(v)).toList(),
-        outIps: config.outIps.map((v) => IpUtils.parseOutIpString(v)).toList(),
-        password: config.groupPassword.isEmpty ? null : config.groupPassword,
-        mtu: config.mtu == 0 ? null : config.mtu,
-        ip: config.virtualIPv4.isEmpty ? null : config.virtualIPv4,
-        noProxy: config.noInIpProxy,
-        serverEncrypt: config.isServerEncrypted,
-        cipherModel: config.encryptionAlgorithm,
-        finger: config.dataFingerprintVerification,
-        punchModel: config.punchModel,
-        ports: config.ports.isEmpty ? null : Uint16List.fromList(config.ports),
-        firstLatency: config.firstLatency,
-        deviceName: config.virtualNetworkCardName.isEmpty
-            ? null
-            : config.virtualNetworkCardName,
-        useChannelType: config.useChannelType,
-        packetLossRate: config.simulatedPacketLossRate == 0
-            ? null
-            : config.simulatedPacketLossRate,
-        packetDelay: config.simulatedLatency,
-        portMappingList: config.portMappings,
-        compressor: config.compressor.isEmpty ? 'none' : config.compressor,
-        allowWireGuard: config.allowWg,
-        localDev: config.localDev.isEmpty ? null : config.localDev,
-        disableRelay: config.disableRelay,
-        hook: (Platform.isAndroid || Platform.isIOS || config.hook.isEmpty)
-            ? null
-            : config.hook);
-    var vntCall = VntApiCallback(successFn: () {
-      uiCall.send('success');
-    }, createTunFn: (info) {
-      // uiCall.send(info);
-    }, connectFn: (info) {
-      uiCall.send(info);
-    }, handshakeFn: (info) {
-      // uiCall.send(info);
-      return true;
-    }, registerFn: (info) {
-      // uiCall.send(info);
-      return true;
-    }, generateTunFn: (info) async {
-      //创建vpn
-      try {
-        int fd = await VntAppCall.startVpn(info, vntConfig.mtu ?? 1400);
-        return fd;
-      } catch (e) {
-        debugPrint('创建vpn异常 $e');
+      tap: false,
+      token: config.token,
+      deviceId: config.deviceID,
+      name: config.deviceName,
+      serverAddressStr: config.serverAddress,
+      nameServers: config.dns,
+      stunServer: config.stunServers,
+      inIps: config.inIps.map((v) => IpUtils.parseInIpString(v)).toList(),
+      outIps: config.outIps.map((v) => IpUtils.parseOutIpString(v)).toList(),
+      password: config.groupPassword.isEmpty ? null : config.groupPassword,
+      mtu: config.mtu == 0 ? null : config.mtu,
+      ip: config.virtualIPv4.isEmpty ? null : config.virtualIPv4,
+      noProxy: config.noInIpProxy,
+      serverEncrypt: config.isServerEncrypted,
+      cipherModel: config.encryptionAlgorithm,
+      finger: config.dataFingerprintVerification,
+      punchModel: config.punchModel,
+      ports: config.ports.isEmpty ? null : Uint16List.fromList(config.ports),
+      firstLatency: config.firstLatency,
+      deviceName: config.virtualNetworkCardName.isEmpty
+          ? null
+          : config.virtualNetworkCardName,
+      useChannelType: config.useChannelType,
+      packetLossRate: config.simulatedPacketLossRate == 0
+          ? null
+          : config.simulatedPacketLossRate,
+      packetDelay: config.simulatedLatency,
+      portMappingList: config.portMappings,
+      compressor: config.compressor.isEmpty ? 'none' : config.compressor,
+      allowWireGuard: config.allowWg,
+      localDev: config.localDev.isEmpty ? null : config.localDev,
+      disableRelay: config.disableRelay,
+      hook: (Platform.isAndroid || Platform.isIOS || config.hook.isEmpty)
+          ? null
+          : config.hook,
+    );
+    var vntCall = VntApiCallback(
+      successFn: () {
+        uiCall.send('success');
+      },
+      createTunFn: (info) {
+        // uiCall.send(info);
+      },
+      connectFn: (info) {
+        uiCall.send(info);
+      },
+      handshakeFn: (info) {
+        AppLogger.info(
+          'connection',
+          '服务器握手成功；配置=${config.configName}；服务端版本=${info.version}',
+        );
+        return true;
+      },
+      registerFn: (info) {
+        AppLogger.info(
+          'connection',
+          '虚拟网络注册成功；配置=${config.configName}；'
+              'IP=${info.virtualIp}；网关=${info.virtualGateway}',
+        );
+        return true;
+      },
+      generateTunFn: (info) async {
+        //创建vpn
+        try {
+          int fd = await VntAppCall.startVpn(info, vntConfig.mtu ?? 1400);
+          return fd;
+        } catch (e) {
+          AppLogger.error('vpn', '移动平台创建 VPN 失败: $e');
+          uiCall.send('stop');
+          return 0;
+        }
+      },
+      peerClientListFn: (info) {
+        // uiCall.send(info);
+      },
+      errorFn: (info) {
+        final message =
+            '网络核心状态：${info.code.name} ${info.msg ?? ''}；'
+            '配置=${config.configName}；服务器=${config.serverAddress}；'
+            '协议=${config.protocol}';
+        if (info.code == RustErrorType.disconnect ||
+            info.code == RustErrorType.warn) {
+          AppLogger.warning('core', message);
+        } else {
+          AppLogger.error('core', message);
+        }
+        uiCall.send(info);
+      },
+      stopFn: () {
         uiCall.send('stop');
-        return 0;
-      }
-    }, peerClientListFn: (info) {
-      // uiCall.send(info);
-    }, errorFn: (info) {
-      debugPrint('服务异常 类型 ${info.code.name} ${info.msg ?? ''}');
-      uiCall.send(info);
-    }, stopFn: () {
-      uiCall.send('stop');
-    });
+      },
+    );
     var vntApi = await vntInit(vntConfig: vntConfig, call: vntCall);
 
     return VntBox(vntApi: vntApi, vntConfig: vntConfig, networkConfig: config);
@@ -297,21 +334,54 @@ class VntManager {
     try {
       connecting = true;
 
+      final effectiveConfig = _effectiveConfig(config);
+      AppLogger.info(
+        'connection',
+        '开始连接；配置=${config.configName}，服务器=${effectiveConfig.serverAddress}',
+      );
+
+      await PlatformCapabilityService.prepareForConnection();
+
       // macOS 权限检查：如果没有权限，请求重新启动
       if (Platform.isMacOS) {
-        final needsRestart = await MacOSPrivilegeManager.checkAndRequestPrivilege();
+        final needsRestart =
+            await MacOSPrivilegeManager.checkAndRequestPrivilege();
         if (needsRestart) {
           // 已经开始重启流程，抛出异常通知 UI
           throw Exception('需要管理员权限，app 正在重新启动...');
         }
       }
 
-      var vntBox = await VntBox.create(config, uiCall);
+      var vntBox = await VntBox.create(effectiveConfig, uiCall);
       map[key] = vntBox;
+      AppLogger.info('connection', '网络核心已启动；配置=${config.configName}');
       return vntBox;
+    } catch (error, stack) {
+      AppLogger.error(
+        'connection',
+        '连接启动失败；配置=${config.configName}；错误=$error',
+        stack,
+      );
+      rethrow;
     } finally {
       connecting = false;
     }
+  }
+
+  NetworkConfig _effectiveConfig(NetworkConfig config) {
+    final address = config.serverAddress.trim();
+    final lowerAddress = address.toLowerCase();
+    final isDefaultServer =
+        lowerAddress == 'tcp://47.108.138.177:29872' ||
+        lowerAddress == 'tcp://vnt.wherewego.top:29872';
+    if (!isDefaultServer) return config;
+
+    final udpAddress = address.substring('tcp://'.length);
+    AppLogger.warning(
+      'connection',
+      '检测到默认服务器的 TCP 配置，自动切换为已验证可用的 UDP；服务器=$udpAddress',
+    );
+    return config.copyWith(serverAddress: udpAddress, protocol: 'UDP');
   }
 
   VntBox? get(String key) {
@@ -381,7 +451,9 @@ class VntManager {
 typedef StartCallback = Future<void> Function(String? configKey);
 
 class VntAppCall {
-  static MethodChannel channel = const MethodChannel('top.wherewego.vnt/vpn');
+  static MethodChannel channel = const MethodChannel(
+    'top.daylight.vnt.www/vpn',
+  );
   static StartCallback startCall = (String? configKey) async {};
   static void setStartCall(StartCallback startCall) {
     VntAppCall.startCall = startCall;
@@ -449,8 +521,10 @@ class VntAppCall {
   }
 
   static Future<int> startVpn(RustDeviceConfig info, int mtu) async {
-    return await VntAppCall.channel
-        .invokeMethod('startVpn', rustDeviceConfigToMap(info, mtu));
+    return await VntAppCall.channel.invokeMethod(
+      'startVpn',
+      rustDeviceConfigToMap(info, mtu),
+    );
   }
 
   static Future<void> moveTaskToBack() async {
@@ -484,17 +558,16 @@ class VntAppCall {
   }
 
   static Map<String, dynamic> rustDeviceConfigToMap(
-      RustDeviceConfig deviceConfig, int mtu) {
+    RustDeviceConfig deviceConfig,
+    int mtu,
+  ) {
     return {
       'virtualIp': deviceConfig.virtualIp,
       'virtualNetmask': deviceConfig.virtualNetmask,
       'virtualGateway': deviceConfig.virtualGateway,
       'mtu': mtu,
       'externalRoute': deviceConfig.externalRoute.map((v) {
-        return {
-          'destination': v.$1,
-          'netmask': v.$2,
-        };
+        return {'destination': v.$1, 'netmask': v.$2};
       }).toList(),
     };
   }

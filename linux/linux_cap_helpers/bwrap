@@ -1,0 +1,3 @@
+#!/bin/sh
+# GTK 图标解码会调用 bwrap；用户命名空间不能携带网络 capability。
+exec /usr/bin/setpriv --inh-caps=-all --ambient-caps=-all /usr/bin/bwrap "$@"

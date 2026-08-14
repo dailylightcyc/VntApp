@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::net::Ipv4Addr;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::sync::OnceLock;
 use std::thread;
 
 use anyhow::{anyhow, Context};
@@ -20,6 +21,28 @@ use vnt::DeviceInfo;
 use vnt::{
     ConnectInfo, ErrorInfo, ErrorType, HandshakeInfo, PeerClientInfo, RegisterInfo, VntCallback,
 };
+
+#[derive(Debug)]
+struct SensitiveLogFilter;
+
+static LOG_HANDLE: OnceLock<log4rs::Handle> = OnceLock::new();
+
+impl log4rs::filter::Filter for SensitiveLogFilter {
+    fn filter(&self, record: &log::Record) -> log4rs::filter::Response {
+        let message = record.args().to_string().to_ascii_lowercase();
+        if message.contains("token:")
+            || message.contains("token=")
+            || message.contains("password:")
+            || message.contains("password=")
+            || message.contains("password_hash")
+            || message.contains("client_secret")
+        {
+            log4rs::filter::Response::Reject
+        } else {
+            log4rs::filter::Response::Neutral
+        }
+    }
+}
 
 #[flutter_rust_bridge::frb] // Synchronous mode for simplicity of the demo
 pub async fn vnt_init(vnt_config: VntConfig, call: VntApiCallback) -> anyhow::Result<VntApi> {
@@ -41,8 +64,10 @@ pub async fn vnt_init(vnt_config: VntConfig, call: VntApiCallback) -> anyhow::Re
 
 #[flutter_rust_bridge::frb(init)]
 pub fn init_app() {
-    // Default utilities - feel free to customize
-    flutter_rust_bridge::setup_default_user_utils();
+    // FRB 的 setup_default_user_utils() 会在 Android 上先注册
+    // android_logger，使后续 log4rs 无法成为全局 logger。这里只保留
+    // FRB 的 panic/backtrace 收集，logger 由 init_log_with_path 唯一初始化。
+    flutter_rust_bridge::setup_backtrace();
 }
 
 /// 初始化日志系统，支持所有平台
@@ -90,23 +115,49 @@ pub fn init_log_with_path(log_dir: String, config_path: String) -> anyhow::Resul
     // 滚动文件追加器
     let appender = RollingFileAppender::builder()
         .encoder(Box::new(encoder))
+        .append(true)
         .build(log_file, Box::new(policy))
         .context("创建日志追加器失败")?;
 
-    // 构建日志配置
+    // Debug 保留网络核心的完整调试记录；Release 只保留经过
+    // 敏感字段审核的 Info 及以上日志。
+    let appender = if cfg!(debug_assertions) {
+        Appender::builder().build("rolling_file", Box::new(appender))
+    } else {
+        Appender::builder()
+            .filter(Box::new(SensitiveLogFilter))
+            .build("rolling_file", Box::new(appender))
+    };
+    let level = if cfg!(debug_assertions) {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Info
+    };
     let config = Config::builder()
-        .appender(Appender::builder().build("rolling_file", Box::new(appender)))
-        .build(
-            Root::builder()
-                .appender("rolling_file")
-                .build(LevelFilter::Info),
-        )
+        .appender(appender)
+        .build(Root::builder().appender("rolling_file").build(level))
         .context("构建日志配置失败")?;
 
-    // 初始化日志系统
-    log4rs::init_config(config).context("初始化日志系统失败")?;
+    // Android 可能在不杀死进程的情况下重建 Flutter Engine/Dart isolate。
+    // Rust 全局 logger 仍然存在，此时应更新配置，而不是再次 set_logger。
+    if let Some(handle) = LOG_HANDLE.get() {
+        handle.set_config(config);
+        log::info!("日志系统配置已刷新，日志目录: {}", log_dir);
+        return Ok(());
+    }
 
-    log::info!("日志系统初始化成功，日志目录: {}", log_dir);
+    let handle = log4rs::init_config(config).context("初始化日志系统失败")?;
+    let _ = LOG_HANDLE.set(handle);
+
+    log::info!(
+        "日志系统初始化成功，模式: {}，日志目录: {}",
+        if cfg!(debug_assertions) {
+            "debug-full"
+        } else {
+            "release-audited"
+        },
+        log_dir
+    );
     log::info!("持久化配置路径: {}", config_path);
     Ok(())
 }
@@ -211,7 +262,6 @@ impl VntApi {
             vnt_config.allow_wire_guard,
             vnt_config.local_dev,
             vnt_config.disable_relay,
-            #[cfg(not(target_os = "android"))]
             vnt_config.hook,
         )?;
         Ok(Self {

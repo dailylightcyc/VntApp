@@ -64,6 +64,43 @@ class NetworkConfig {
     required this.disableRelay,
     required this.hook,
   });
+
+  NetworkConfig copyWith({String? serverAddress, String? protocol}) {
+    return NetworkConfig(
+      itemKey: itemKey,
+      configName: configName,
+      token: token,
+      deviceName: deviceName,
+      virtualIPv4: virtualIPv4,
+      serverAddress: serverAddress ?? this.serverAddress,
+      stunServers: List<String>.from(stunServers),
+      inIps: List<String>.from(inIps),
+      outIps: List<String>.from(outIps),
+      portMappings: List<String>.from(portMappings),
+      groupPassword: groupPassword,
+      isServerEncrypted: isServerEncrypted,
+      protocol: protocol ?? this.protocol,
+      dataFingerprintVerification: dataFingerprintVerification,
+      encryptionAlgorithm: encryptionAlgorithm,
+      deviceID: deviceID,
+      virtualNetworkCardName: virtualNetworkCardName,
+      mtu: mtu,
+      ports: List<int>.from(ports),
+      firstLatency: firstLatency,
+      noInIpProxy: noInIpProxy,
+      dns: List<String>.from(dns),
+      simulatedPacketLossRate: simulatedPacketLossRate,
+      simulatedLatency: simulatedLatency,
+      punchModel: punchModel,
+      useChannelType: useChannelType,
+      compressor: compressor,
+      allowWg: allowWg,
+      localDev: localDev,
+      disableRelay: disableRelay,
+      hook: hook,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'itemKey': itemKey,
@@ -137,20 +174,27 @@ class NetworkConfig {
   }
 
   factory NetworkConfig.fromJson(Map<String, dynamic> json) {
+    final storedAddress = (json['server_address'] as String).trim();
+    final lowerAddress = storedAddress.toLowerCase();
+    final migrateDefaultServerToUdp =
+        lowerAddress == 'tcp://47.108.138.177:29872' ||
+        lowerAddress == 'tcp://vnt.wherewego.top:29872';
     return NetworkConfig(
       itemKey: json['itemKey'],
       configName: json['config_name'],
       token: json['token'],
       deviceName: json['name'],
       virtualIPv4: json['ip'],
-      serverAddress: json['server_address'],
+      serverAddress: migrateDefaultServerToUdp
+          ? storedAddress.substring('tcp://'.length)
+          : storedAddress,
       stunServers: List<String>.from(json['stun_server']),
       inIps: List<String>.from(json['in_ips']),
       outIps: List<String>.from(json['out_ips']),
       portMappings: List<String>.from(json['mapping']),
       groupPassword: json['password'],
       isServerEncrypted: json['server_encrypt'],
-      protocol: json['protocol'] ?? 'UDP',
+      protocol: migrateDefaultServerToUdp ? 'UDP' : json['protocol'] ?? 'UDP',
       dataFingerprintVerification: json['finger'],
       encryptionAlgorithm: json['cipher_model'],
       deviceID: json['device_id'],

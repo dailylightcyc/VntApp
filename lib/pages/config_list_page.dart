@@ -16,7 +16,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:vnt_app/file_saver.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:cross_file/cross_file.dart';
 import 'package:vnt_app/system_tray_manager.dart';
 import 'package:vnt_app/ios_vpn_service.dart';
 
@@ -88,7 +87,11 @@ class _ConfigListPageState extends State<ConfigListPage> {
               // 页面头部
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.all(isWideScreen ? context.spacingXLarge : context.spacingMedium),
+                  padding: EdgeInsets.all(
+                    isWideScreen
+                        ? context.spacingXLarge
+                        : context.spacingMedium,
+                  ),
                   child: _buildHeader(isDark, isWideScreen),
                 ),
               ),
@@ -96,82 +99,96 @@ class _ConfigListPageState extends State<ConfigListPage> {
               // 操作按钮行
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: isWideScreen ? context.spacingXLarge : context.spacingMedium),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isWideScreen
+                        ? context.spacingXLarge
+                        : context.spacingMedium,
+                  ),
                   child: _buildActionRow(isDark),
                 ),
               ),
 
-              SliverToBoxAdapter(child: SizedBox(height: context.spacingMedium)),
+              SliverToBoxAdapter(
+                child: SizedBox(height: context.spacingMedium),
+              ),
 
               // 配置列表
               _isLoading
                   ? SliverFillRemaining(
                       child: Center(
-                        child: CircularProgressIndicator(
-                          color: primaryColor,
-                        ),
+                        child: CircularProgressIndicator(color: primaryColor),
                       ),
                     )
                   : _configs.isEmpty
-                      ? SliverFillRemaining(
-                          child: _buildEmptyView(isDark),
-                        )
-                      : SliverPadding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: isWideScreen ? context.spacingXLarge : context.spacingMedium,
-                          ),
-                          sliver: SliverReorderableList(
-                            itemBuilder: (context, index) {
-                              final config = _configs[index];
-                              return ReorderableDelayedDragStartListener(
-                                key: ValueKey(config.itemKey),
-                                index: index,
-                                child: Padding(
-                                  padding: EdgeInsets.only(bottom: context.cardSpacing),
-                                  child: _buildConfigCard(config, index, isDark),
+                  ? SliverFillRemaining(child: _buildEmptyView(isDark))
+                  : SliverPadding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isWideScreen
+                            ? context.spacingXLarge
+                            : context.spacingMedium,
+                      ),
+                      sliver: SliverReorderableList(
+                        itemBuilder: (context, index) {
+                          final config = _configs[index];
+                          return ReorderableDelayedDragStartListener(
+                            key: ValueKey(config.itemKey),
+                            index: index,
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                bottom: context.cardSpacing,
+                              ),
+                              child: _buildConfigCard(config, index, isDark),
+                            ),
+                          );
+                        },
+                        itemCount: _configs.length,
+                        onReorder: (oldIndex, newIndex) {
+                          setState(() {
+                            if (oldIndex < newIndex) {
+                              newIndex -= 1;
+                            }
+                            final item = _configs.removeAt(oldIndex);
+                            _configs.insert(newIndex, item);
+                          });
+                          // 保存新的排序
+                          _dataPersistence.saveData(_configs);
+                          // 通知设置页面刷新配置列表
+                          widget.onDataChanged?.call();
+                        },
+                        proxyDecorator: (child, index, animation) {
+                          // 拖动时的视觉效果 - 提供明显的反馈
+                          return AnimatedBuilder(
+                            animation: animation,
+                            builder: (BuildContext context, Widget? child) {
+                              final double animValue = Curves.easeInOut
+                                  .transform(animation.value);
+                              final double elevation = lerpDouble(
+                                0,
+                                8,
+                                animValue,
+                              )!;
+                              final double scale = lerpDouble(
+                                1,
+                                1.05,
+                                animValue,
+                              )!;
+                              return Transform.scale(
+                                scale: scale,
+                                child: Material(
+                                  elevation: elevation,
+                                  color: Colors.transparent,
+                                  borderRadius: BorderRadius.circular(
+                                    context.cardRadius,
+                                  ),
+                                  child: Opacity(opacity: 0.9, child: child),
                                 ),
                               );
                             },
-                            itemCount: _configs.length,
-                            onReorder: (oldIndex, newIndex) {
-                              setState(() {
-                                if (oldIndex < newIndex) {
-                                  newIndex -= 1;
-                                }
-                                final item = _configs.removeAt(oldIndex);
-                                _configs.insert(newIndex, item);
-                              });
-                              // 保存新的排序
-                              _dataPersistence.saveData(_configs);
-                              // 通知设置页面刷新配置列表
-                              widget.onDataChanged?.call();
-                            },
-                            proxyDecorator: (child, index, animation) {
-                              // 拖动时的视觉效果 - 提供明显的反馈
-                              return AnimatedBuilder(
-                                animation: animation,
-                                builder: (BuildContext context, Widget? child) {
-                                  final double animValue = Curves.easeInOut.transform(animation.value);
-                                  final double elevation = lerpDouble(0, 8, animValue)!;
-                                  final double scale = lerpDouble(1, 1.05, animValue)!;
-                                  return Transform.scale(
-                                    scale: scale,
-                                    child: Material(
-                                      elevation: elevation,
-                                      color: Colors.transparent,
-                                      borderRadius: BorderRadius.circular(context.cardRadius),
-                                      child: Opacity(
-                                        opacity: 0.9,
-                                        child: child,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: child,
-                              );
-                            },
-                          ),
-                        ),
+                            child: child,
+                          );
+                        },
+                      ),
+                    ),
             ],
           ),
         ),
@@ -210,14 +227,18 @@ class _ConfigListPageState extends State<ConfigListPage> {
                 style: TextStyle(
                   fontSize: context.fontXLarge,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  color: isDark
+                      ? AppTheme.darkTextPrimary
+                      : AppTheme.lightTextPrimary,
                 ),
               ),
               Text(
                 '${_configs.length} 个配置',
                 style: TextStyle(
                   fontSize: context.fontBody,
-                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                  color: isDark
+                      ? AppTheme.darkTextSecondary
+                      : AppTheme.lightTextSecondary,
                 ),
               ),
             ],
@@ -267,7 +288,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
           horizontal: context.spacingMedium,
         ),
         decoration: BoxDecoration(
-          color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+          color: isDark
+              ? AppTheme.darkCardBackground
+              : AppTheme.lightCardBackground,
           borderRadius: BorderRadius.circular(context.cardRadius),
           boxShadow: [
             BoxShadow(
@@ -287,7 +310,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
               style: TextStyle(
                 fontSize: context.fontBody,
                 fontWeight: FontWeight.w500,
-                color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                color: isDark
+                    ? AppTheme.darkTextPrimary
+                    : AppTheme.lightTextPrimary,
               ),
             ),
           ],
@@ -321,7 +346,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
             style: TextStyle(
               fontSize: context.fontLarge,
               fontWeight: FontWeight.w600,
-              color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+              color: isDark
+                  ? AppTheme.darkTextPrimary
+                  : AppTheme.lightTextPrimary,
             ),
           ),
           SizedBox(height: context.spacingXSmall),
@@ -329,7 +356,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
             '点击上方按钮新建或导入一个组网配置',
             style: TextStyle(
               fontSize: context.fontBody,
-              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+              color: isDark
+                  ? AppTheme.darkTextSecondary
+                  : AppTheme.lightTextSecondary,
             ),
           ),
         ],
@@ -345,9 +374,15 @@ class _ConfigListPageState extends State<ConfigListPage> {
       decoration: BoxDecoration(
         color: isConnected
             ? (isDark
-                ? ColorUtils.backgroundForDarkMode(primaryColor) // 暗黑模式：使用主题色生成的暗色背景
-                : ColorUtils.backgroundForLightMode(primaryColor)) // 日间模式：使用主题色生成的浅色背景
-            : (isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground),
+                  ? ColorUtils.backgroundForDarkMode(
+                      primaryColor,
+                    ) // 暗黑模式：使用主题色生成的暗色背景
+                  : ColorUtils.backgroundForLightMode(
+                      primaryColor,
+                    )) // 日间模式：使用主题色生成的浅色背景
+            : (isDark
+                  ? AppTheme.darkCardBackground
+                  : AppTheme.lightCardBackground),
         borderRadius: BorderRadius.circular(context.cardRadius),
         boxShadow: [
           BoxShadow(
@@ -370,9 +405,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
                   width: context.w(12),
                   height: context.w(12),
                   decoration: BoxDecoration(
-                    color: isConnected
-                        ? primaryColor
-                        : Colors.grey,
+                    color: isConnected ? primaryColor : Colors.grey,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -385,8 +418,11 @@ class _ConfigListPageState extends State<ConfigListPage> {
                       fontSize: context.fontLarge,
                       fontWeight: FontWeight.bold,
                       color: (isConnected && isDark)
-                          ? Colors.white // 暗黑模式下已连接配置使用白色文字
-                          : (isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary),
+                          ? Colors
+                                .white // 暗黑模式下已连接配置使用白色文字
+                          : (isDark
+                                ? AppTheme.darkTextPrimary
+                                : AppTheme.lightTextPrimary),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -452,15 +488,23 @@ class _ConfigListPageState extends State<ConfigListPage> {
                       backgroundColor: isConnected
                           ? Colors.white.withOpacity(0.9)
                           : (isDark
-                              ? HSLColor.fromColor(primaryColor).withLightness(0.25).toColor()
-                              : HSLColor.fromColor(primaryColor).withLightness(0.35).toColor()),
+                                ? HSLColor.fromColor(
+                                    primaryColor,
+                                  ).withLightness(0.25).toColor()
+                                : HSLColor.fromColor(
+                                    primaryColor,
+                                  ).withLightness(0.35).toColor()),
                       foregroundColor: isConnected
                           ? const Color(0xFFE53E3E)
                           : Colors.white,
                       elevation: 0,
-                      padding: EdgeInsets.symmetric(vertical: context.spacingSmall),
+                      padding: EdgeInsets.symmetric(
+                        vertical: context.spacingSmall,
+                      ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(context.spacingXSmall),
+                        borderRadius: BorderRadius.circular(
+                          context.spacingXSmall,
+                        ),
                       ),
                     ),
                     icon: Icon(
@@ -526,23 +570,17 @@ class _ConfigListPageState extends State<ConfigListPage> {
         : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary);
 
     final valueColor = (isConnected && isDark)
-        ? Colors.white // 暗黑模式已连接：纯白色
+        ? Colors
+              .white // 暗黑模式已连接：纯白色
         : (isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary);
 
     return Row(
       children: [
-        Icon(
-          icon,
-          size: context.iconSmall,
-          color: textColor,
-        ),
+        Icon(icon, size: context.iconSmall, color: textColor),
         SizedBox(width: context.spacingXSmall),
         Text(
           '$label: ',
-          style: TextStyle(
-            fontSize: context.fontBody,
-            color: textColor,
-          ),
+          style: TextStyle(fontSize: context.fontBody, color: textColor),
         ),
         Expanded(
           child: Text(
@@ -577,7 +615,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
             Icon(
               icon,
               size: context.iconXSmall,
-              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+              color: isDark
+                  ? AppTheme.darkTextSecondary
+                  : AppTheme.lightTextSecondary,
             ),
             SizedBox(width: context.spacingXSmall),
             Expanded(
@@ -585,7 +625,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
                 text,
                 style: TextStyle(
                   fontSize: context.fontSmall,
-                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                  color: isDark
+                      ? AppTheme.darkTextSecondary
+                      : AppTheme.lightTextSecondary,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -643,8 +685,8 @@ class _ConfigListPageState extends State<ConfigListPage> {
     final bgColor = isConnected
         ? Colors.white.withOpacity(0.9)
         : (isDark
-            ? Colors.white.withOpacity(0.05)
-            : Colors.black.withOpacity(0.03));
+              ? Colors.white.withOpacity(0.05)
+              : Colors.black.withOpacity(0.03));
 
     return InkWell(
       onTap: onTap,
@@ -689,7 +731,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
               maxHeight: maxHeight,
             ),
             decoration: BoxDecoration(
-              color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+              color: isDark
+                  ? AppTheme.darkCardBackground
+                  : AppTheme.lightCardBackground,
               borderRadius: BorderRadius.circular(dialogRadius),
             ),
             clipBehavior: Clip.antiAlias,
@@ -737,7 +781,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
       await _connectViaIOSVPN(config);
       return;
     }
-    
+
     // 其他平台使用Rust直接连接
     // 检查是否已有连接
     if (vntManager.hasConnection()) {
@@ -794,7 +838,8 @@ class _ConfigListPageState extends State<ConfigListPage> {
         }
       } else if (msg is RustErrorInfo) {
         // Disconnect 和 Warn 类型不销毁连接，Rust 层会自动重连
-        if (msg.code == RustErrorType.disconnect || msg.code == RustErrorType.warn) {
+        if (msg.code == RustErrorType.disconnect ||
+            msg.code == RustErrorType.warn) {
           if (onece) {
             onece = false;
             Navigator.of(context).popUntil((route) => route.isFirst);
@@ -802,7 +847,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
           _handleConnectionError(msg, configName, itemKey);
           return;
         }
-        
+
         // 其他致命错误才销毁连接
         if (onece) {
           onece = false;
@@ -856,8 +901,12 @@ class _ConfigListPageState extends State<ConfigListPage> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: isDark
+              ? AppTheme.darkCardBackground
+              : AppTheme.lightCardBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -869,7 +918,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
                   '正在连接...',
                   style: TextStyle(
                     fontSize: context.fontMedium,
-                    color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                    color: isDark
+                        ? AppTheme.darkTextPrimary
+                        : AppTheme.lightTextPrimary,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -900,26 +951,32 @@ class _ConfigListPageState extends State<ConfigListPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: isDark
+              ? AppTheme.darkCardBackground
+              : AppTheme.lightCardBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Text(
             '连接配置项[${lastConnectedConfig?.configName}]',
             style: TextStyle(
-              color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+              color: isDark
+                  ? AppTheme.darkTextPrimary
+                  : AppTheme.lightTextPrimary,
             ),
           ),
           content: Text(
             '已经建立了连接',
             style: TextStyle(
-              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+              color: isDark
+                  ? AppTheme.darkTextSecondary
+                  : AppTheme.lightTextSecondary,
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                foregroundColor: primaryColor,
-              ),
+              style: TextButton.styleFrom(foregroundColor: primaryColor),
               child: const Text('关闭'),
             ),
           ],
@@ -928,9 +985,14 @@ class _ConfigListPageState extends State<ConfigListPage> {
     );
   }
 
-  void _handleConnectionError(RustErrorInfo msg, String configName, String itemKey) {
+  void _handleConnectionError(
+    RustErrorInfo msg,
+    String configName,
+    String itemKey,
+  ) {
     // Warn 类型不断开连接，只显示警告
-    if (msg.code != RustErrorType.warn && msg.code != RustErrorType.disconnect) {
+    if (msg.code != RustErrorType.warn &&
+        msg.code != RustErrorType.disconnect) {
       vntManager.remove(itemKey);
       setState(() {});
     }
@@ -941,7 +1003,14 @@ class _ConfigListPageState extends State<ConfigListPage> {
         errorMsg = '[$configName] token错误';
         break;
       case RustErrorType.disconnect:
-        errorMsg = '[$configName] 与服务器发生断连，正在尝试重连...';
+        final protocol = vntManager
+            .get(itemKey)
+            ?.networkConfig
+            .protocol
+            .toUpperCase();
+        errorMsg = protocol == 'TCP'
+            ? '[$configName] TCP 通道无法保持连接，正在重连。若服务端未启用 TCP，请改为 UDP。'
+            : '[$configName] UDP 与服务器断连，正在尝试重连...';
         break;
       case RustErrorType.addressExhausted:
         errorMsg = '[$configName] IP地址用尽';
@@ -972,39 +1041,51 @@ class _ConfigListPageState extends State<ConfigListPage> {
   Future<void> _connectViaIOSVPN(NetworkConfig config) async {
     try {
       debugPrint('[iOS VPN] Starting VPN connection for: ${config.configName}');
-      
+
       // 保存配置到App Group
       await IOSVPNService.saveConfig(
         serverAddress: config.serverAddress,
         token: config.token,
       );
-      
+
       // 启动VPN
       final success = await IOSVPNService.startVPN(
         serverAddress: config.serverAddress,
         token: config.token,
         deviceName: config.deviceName,
       );
-      
+
       if (success) {
         // iOS VPN连接成功
         if (mounted) {
-          showTopToast(context, '[${config.configName}] VPN连接成功', isSuccess: true);
+          showTopToast(
+            context,
+            '[${config.configName}] VPN连接成功',
+            isSuccess: true,
+          );
           // 调用回调，跳转到房间页面
           widget.onConfigSelected?.call(config);
         }
-        
+
         debugPrint('[iOS VPN] Connection successful');
       } else {
         if (mounted) {
-          showTopToast(context, '[${config.configName}] VPN连接失败，请确认已添加VPN权限', isSuccess: false);
+          showTopToast(
+            context,
+            '[${config.configName}] VPN连接失败，请确认已添加VPN权限',
+            isSuccess: false,
+          );
         }
         debugPrint('[iOS VPN] Connection failed');
       }
     } catch (e) {
       debugPrint('[iOS VPN] Connection error: $e');
       if (mounted) {
-        showTopToast(context, '[${config.configName}] VPN连接异常: $e', isSuccess: false);
+        showTopToast(
+          context,
+          '[${config.configName}] VPN连接异常: $e',
+          isSuccess: false,
+        );
       }
     }
   }
@@ -1014,7 +1095,8 @@ class _ConfigListPageState extends State<ConfigListPage> {
     try {
       if (Platform.isAndroid) {
         final directory = await getTemporaryDirectory();
-        final fileName = '${config.configName}_${DateTime.now().millisecondsSinceEpoch}.json';
+        final fileName =
+            '${config.configName}_${DateTime.now().millisecondsSinceEpoch}.json';
         final filePath = '${directory.path}/$fileName';
 
         await _dataPersistence.exportSingleConfig(filePath, config);
@@ -1046,7 +1128,8 @@ class _ConfigListPageState extends State<ConfigListPage> {
       } else if (Platform.isIOS) {
         // iOS使用Share Sheet分享文件
         final tempDir = await getTemporaryDirectory();
-        final fileName = '${config.configName}_${DateTime.now().millisecondsSinceEpoch}.json';
+        final fileName =
+            '${config.configName}_${DateTime.now().millisecondsSinceEpoch}.json';
         final filePath = '${tempDir.path}/$fileName';
 
         await _dataPersistence.exportSingleConfig(filePath, config);
@@ -1060,11 +1143,15 @@ class _ConfigListPageState extends State<ConfigListPage> {
         // 使用Share Sheet分享文件
         try {
           final box = context.findRenderObject() as RenderBox?;
-          final result = await Share.shareXFiles(
-            [XFile(filePath)],
-            sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+          final result = await SharePlus.instance.share(
+            ShareParams(
+              files: [XFile(filePath)],
+              sharePositionOrigin: box != null
+                  ? box.localToGlobal(Offset.zero) & box.size
+                  : null,
+            ),
           );
-          
+
           if (mounted) {
             if (result.status == ShareResultStatus.success) {
               showTopToast(context, '配置已导出', isSuccess: true);
@@ -1087,9 +1174,10 @@ class _ConfigListPageState extends State<ConfigListPage> {
         });
       } else {
         // Windows/macOS/Linux
-        String? path = await FilePicker.platform.saveFile(
+        String? path = await FilePicker.saveFile(
           dialogTitle: '选择保存位置',
-          fileName: '${config.configName}_${DateTime.now().millisecondsSinceEpoch}.json',
+          fileName:
+              '${config.configName}_${DateTime.now().millisecondsSinceEpoch}.json',
           type: FileType.custom,
           allowedExtensions: ['json'],
         );
@@ -1112,9 +1200,7 @@ class _ConfigListPageState extends State<ConfigListPage> {
   // 导入单个配置
   Future<void> _importSingleConfig() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-      );
+      FilePickerResult? result = await FilePicker.pickFiles(type: FileType.any);
       if (result != null) {
         final filePath = result.files.single.path!;
 
@@ -1125,7 +1211,11 @@ class _ConfigListPageState extends State<ConfigListPage> {
         // 检查是否是全局备份文件
         if (jsonData.containsKey('configs')) {
           if (mounted) {
-            showTopToast(context, '这是全局备份文件，请在设置页面的"恢复备份数据"中导入', isSuccess: false);
+            showTopToast(
+              context,
+              '这是全局备份文件，请在设置页面的"恢复备份数据"中导入',
+              isSuccess: false,
+            );
           }
           return;
         }
@@ -1161,25 +1251,33 @@ class _ConfigListPageState extends State<ConfigListPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+        backgroundColor: isDark
+            ? AppTheme.darkCardBackground
+            : AppTheme.lightCardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           '删除配置',
           style: TextStyle(
-            color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+            color: isDark
+                ? AppTheme.darkTextPrimary
+                : AppTheme.lightTextPrimary,
           ),
         ),
         content: Text(
           '确定要删除 "${config.configName}" 吗？此操作不可恢复。',
           style: TextStyle(
-            color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+            color: isDark
+                ? AppTheme.darkTextSecondary
+                : AppTheme.lightTextSecondary,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
-              foregroundColor: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+              foregroundColor: isDark
+                  ? AppTheme.darkTextSecondary
+                  : AppTheme.lightTextSecondary,
             ),
             child: const Text('取消'),
           ),
@@ -1221,7 +1319,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
           constraints: const BoxConstraints(maxWidth: 360),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+            color: isDark
+                ? AppTheme.darkCardBackground
+                : AppTheme.lightCardBackground,
             borderRadius: BorderRadius.circular(24),
           ),
           child: Column(
@@ -1249,7 +1349,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
                 style: TextStyle(
                   fontSize: context.fontLarge,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  color: isDark
+                      ? AppTheme.darkTextPrimary
+                      : AppTheme.lightTextPrimary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -1259,7 +1361,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
                 '是否断开与 \'${config.configName}\' 的组网连接?',
                 style: TextStyle(
                   fontSize: context.fontBody,
-                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                  color: isDark
+                      ? AppTheme.darkTextSecondary
+                      : AppTheme.lightTextSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -1272,9 +1376,13 @@ class _ConfigListPageState extends State<ConfigListPage> {
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                        foregroundColor: isDark
+                            ? AppTheme.darkTextPrimary
+                            : AppTheme.lightTextPrimary,
                         side: BorderSide(
-                          color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
+                          color: isDark
+                              ? Colors.white.withOpacity(0.2)
+                              : Colors.black.withOpacity(0.2),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -1300,7 +1408,9 @@ class _ConfigListPageState extends State<ConfigListPage> {
 
                         // 更新 Android 磁贴和小组件
                         if (Platform.isAndroid) {
-                          VntAppCall.updateWidgetAndTile(vntManager.hasConnection());
+                          VntAppCall.updateWidgetAndTile(
+                            vntManager.hasConnection(),
+                          );
                         }
 
                         // 更新系统托盘

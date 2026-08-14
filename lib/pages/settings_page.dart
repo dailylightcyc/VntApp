@@ -12,7 +12,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:vnt_app/file_saver.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:cross_file/cross_file.dart';
 import 'package:vnt_app/connect_log.dart';
 import 'package:vnt_app/vnt/vnt_manager.dart';
 import 'package:vnt_app/system_tray_manager.dart';
@@ -38,8 +37,10 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final DataPersistence _dataPersistence = DataPersistence();
-  static final ValueNotifier<bool> _windowsAutoStartLoading = ValueNotifier<bool>(false);
-  static final ValueNotifier<bool> _windowsTaskSchedulerLoading = ValueNotifier<bool>(false);
+  static final ValueNotifier<bool> _windowsAutoStartLoading =
+      ValueNotifier<bool>(false);
+  static final ValueNotifier<bool> _windowsTaskSchedulerLoading =
+      ValueNotifier<bool>(false);
   static const Duration _windowsCommandTimeout = Duration(seconds: 30);
   static const String _windowsStartupTaskName = 'VNTAppStartup';
   static const String _windowsStartupTrayArg = '--startup-hidden';
@@ -65,7 +66,9 @@ class _SettingsPageState extends State<SettingsPage> {
           ? '/home/${Platform.environment['SUDO_USER']}'
           : Platform.environment['HOME'] ?? '';
       if (home.isNotEmpty) {
-        final fileExists = await File('$home/.config/autostart/vnt_app.desktop').exists();
+        final fileExists = await File(
+          '$home/.config/autostart/vnt_app.desktop',
+        ).exists();
         _autoStart = fileExists;
         // 同步到持久化存储
         if (_autoStart != (await _dataPersistence.loadAutoStart() ?? false)) {
@@ -128,11 +131,11 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<bool> _windowsStartupTaskExists() async {
-    final result = await _runWindowsProcess(
-      'SCHTASKS.EXE',
-      ['/QUERY', '/TN', _windowsStartupTaskName],
-      timeout: const Duration(seconds: 10),
-    );
+    final result = await _runWindowsProcess('SCHTASKS.EXE', [
+      '/QUERY',
+      '/TN',
+      _windowsStartupTaskName,
+    ], timeout: const Duration(seconds: 10));
     return result.exitCode == 0;
   }
 
@@ -185,10 +188,12 @@ class _SettingsPageState extends State<SettingsPage> {
         return false;
       }
 
-      final result = await _runWindowsProcess(
-        'SCHTASKS.EXE',
-        ['/DELETE', '/TN', _windowsStartupTaskName, '/F'],
-      );
+      final result = await _runWindowsProcess('SCHTASKS.EXE', [
+        '/DELETE',
+        '/TN',
+        _windowsStartupTaskName,
+        '/F',
+      ]);
       if (result.exitCode == 0) {
         debugPrint('开机自启任务已删除');
         return true;
@@ -229,9 +234,7 @@ class _SettingsPageState extends State<SettingsPage> {
         });
         showTopToast(
           context,
-          success
-              ? (value ? '开机自启已启用' : '开机自启已关闭')
-              : '开机自启设置失败',
+          success ? (value ? '开机自启已启用' : '开机自启已关闭') : '开机自启设置失败',
           isSuccess: success,
         );
       }
@@ -250,14 +253,18 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<bool> _openTaskScheduler() async {
     try {
-      await Process.start('control.exe', ['schedtasks'])
-          .timeout(const Duration(seconds: 10));
+      await Process.start('control.exe', [
+        'schedtasks',
+      ]).timeout(const Duration(seconds: 10));
       return true;
     } catch (e) {
       debugPrint('Failed to open Task Scheduler: $e');
       try {
-        await Process.start('taskschd.msc', [], runInShell: true)
-            .timeout(const Duration(seconds: 10));
+        await Process.start(
+          'taskschd.msc',
+          [],
+          runInShell: true,
+        ).timeout(const Duration(seconds: 10));
         return true;
       } catch (fallbackError) {
         debugPrint('Fallback open Task Scheduler failed: $fallbackError');
@@ -301,17 +308,18 @@ class _SettingsPageState extends State<SettingsPage> {
       debugPrint('无法获取用户 HOME 目录');
       return;
     }
-    
+
     final autostartDir = '$home/.config/autostart';
     final desktopFile = '$autostartDir/vnt_app.desktop';
-    
+
     try {
       if (enable) {
         await Directory(autostartDir).create(recursive: true);
-        
+
         // AppImage 需要用 APPIMAGE 环境变量，否则用 resolvedExecutable
-        final execPath = Platform.environment['APPIMAGE'] ?? Platform.resolvedExecutable;
-        
+        final execPath =
+            Platform.environment['APPIMAGE'] ?? Platform.resolvedExecutable;
+
         await File(desktopFile).writeAsString(
           '[Desktop Entry]\nType=Application\nName=VNT App\nExec=pkexec $execPath\nX-GNOME-Autostart-enabled=true\n',
         );
@@ -333,7 +341,8 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       if (Platform.isAndroid) {
         final directory = await getTemporaryDirectory();
-        final fileName = 'vnt_backup_${DateTime.now().millisecondsSinceEpoch}.json';
+        final fileName =
+            'vnt_backup_${DateTime.now().millisecondsSinceEpoch}.json';
         final filePath = '${directory.path}/$fileName';
 
         debugPrint('开始导出配置到临时文件: $filePath');
@@ -366,7 +375,8 @@ class _SettingsPageState extends State<SettingsPage> {
       } else if (Platform.isIOS) {
         // iOS使用Share Sheet分享文件
         final tempDir = await getTemporaryDirectory();
-        final fileName = 'vnt_backup_${DateTime.now().millisecondsSinceEpoch}.json';
+        final fileName =
+            'vnt_backup_${DateTime.now().millisecondsSinceEpoch}.json';
         final filePath = '${tempDir.path}/$fileName';
 
         debugPrint('iOS: 开始导出配置到临时文件: $filePath');
@@ -381,11 +391,15 @@ class _SettingsPageState extends State<SettingsPage> {
         // 使用Share Sheet分享文件
         try {
           final box = context.findRenderObject() as RenderBox?;
-          final result = await Share.shareXFiles(
-            [XFile(filePath)],
-            sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+          final result = await SharePlus.instance.share(
+            ShareParams(
+              files: [XFile(filePath)],
+              sharePositionOrigin: box != null
+                  ? box.localToGlobal(Offset.zero) & box.size
+                  : null,
+            ),
           );
-          
+
           if (mounted) {
             if (result.status == ShareResultStatus.success) {
               showTopToast(context, '配置已备份', isSuccess: true);
@@ -408,7 +422,7 @@ class _SettingsPageState extends State<SettingsPage> {
         });
       } else {
         // Windows/macOS/Linux
-        String? path = await FilePicker.platform.saveFile(
+        String? path = await FilePicker.saveFile(
           dialogTitle: '选择保存位置',
           fileName: 'vnt_backup_${DateTime.now().millisecondsSinceEpoch}.json',
           type: FileType.custom,
@@ -438,9 +452,7 @@ class _SettingsPageState extends State<SettingsPage> {
   // 导入所有配置
   Future<void> _importAllConfigs() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
-      );
+      FilePickerResult? result = await FilePicker.pickFiles(type: FileType.any);
 
       if (result == null) {
         debugPrint('用户取消了文件选择');
@@ -488,47 +500,109 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isWideScreen = screenWidth > 600;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(context.spacingMedium),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 页面头部
-              _buildHeader(isDark, isWideScreen),
-              SizedBox(height: context.spacingLarge),
-
-              // 外观设置
-              _buildSectionTitle(isDark, '外观'),
-              SizedBox(height: context.spacingSmall),
-              _buildAppearanceSettings(isDark),
-              SizedBox(height: context.spacingLarge),
-
-              // 应用设置
-              _buildSectionTitle(isDark, '应用'),
-              SizedBox(height: context.spacingSmall),
-              _buildAppSettings(isDark),
-              SizedBox(height: context.spacingLarge),
-
-              // 数据管理
-              _buildSectionTitle(isDark, '数据管理'),
-              SizedBox(height: context.spacingSmall),
-              _buildDataSettings(isDark),
-
-              // 日志（所有平台）
-              SizedBox(height: context.spacingLarge),
-              _buildSectionTitle(isDark, '调试'),
-              SizedBox(height: context.spacingSmall),
-              _buildDebugSettings(isDark),
-            ],
-          ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final useTwoColumns = constraints.maxWidth >= 1000;
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(context.spacingMedium),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1240),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeader(isDark, constraints.maxWidth > 600),
+                      SizedBox(height: context.spacingLarge),
+                      if (useTwoColumns)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  _buildSettingsSection(
+                                    isDark,
+                                    '外观',
+                                    _buildAppearanceSettings(isDark),
+                                  ),
+                                  SizedBox(height: context.spacingLarge),
+                                  _buildSettingsSection(
+                                    isDark,
+                                    '应用',
+                                    _buildAppSettings(isDark),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(width: context.spacingLarge),
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  _buildSettingsSection(
+                                    isDark,
+                                    '数据管理',
+                                    _buildDataSettings(isDark),
+                                  ),
+                                  SizedBox(height: context.spacingLarge),
+                                  _buildSettingsSection(
+                                    isDark,
+                                    '调试与诊断',
+                                    _buildDebugSettings(isDark),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        )
+                      else ...[
+                        _buildSettingsSection(
+                          isDark,
+                          '外观',
+                          _buildAppearanceSettings(isDark),
+                        ),
+                        SizedBox(height: context.spacingLarge),
+                        _buildSettingsSection(
+                          isDark,
+                          '应用',
+                          _buildAppSettings(isDark),
+                        ),
+                        SizedBox(height: context.spacingLarge),
+                        _buildSettingsSection(
+                          isDark,
+                          '数据管理',
+                          _buildDataSettings(isDark),
+                        ),
+                        SizedBox(height: context.spacingLarge),
+                        _buildSettingsSection(
+                          isDark,
+                          '调试与诊断',
+                          _buildDebugSettings(isDark),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
+    );
+  }
+
+  Widget _buildSettingsSection(bool isDark, String title, Widget content) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle(isDark, title),
+        SizedBox(height: context.spacingSmall),
+        content,
+      ],
     );
   }
 
@@ -563,14 +637,18 @@ class _SettingsPageState extends State<SettingsPage> {
                 style: TextStyle(
                   fontSize: context.fontXLarge,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  color: isDark
+                      ? AppTheme.darkTextPrimary
+                      : AppTheme.lightTextPrimary,
                 ),
               ),
               Text(
                 '自定义应用设置',
                 style: TextStyle(
                   fontSize: context.fontBody,
-                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                  color: isDark
+                      ? AppTheme.darkTextSecondary
+                      : AppTheme.lightTextSecondary,
                 ),
               ),
             ],
@@ -597,11 +675,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildAppearanceSettings(bool isDark) {
     final themeProvider = ThemeProvider.of(context);
-    final customColor = themeProvider?.customThemeColor ?? AppTheme.primaryColor;
+    final customColor =
+        themeProvider?.customThemeColor ?? AppTheme.primaryColor;
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+        color: isDark
+            ? AppTheme.darkCardBackground
+            : AppTheme.lightCardBackground,
         borderRadius: BorderRadius.circular(context.cardRadius),
         boxShadow: [
           BoxShadow(
@@ -653,14 +734,18 @@ class _SettingsPageState extends State<SettingsPage> {
                       style: TextStyle(
                         fontSize: context.fontMedium,
                         fontWeight: FontWeight.w500,
-                        color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                        color: isDark
+                            ? AppTheme.darkTextPrimary
+                            : AppTheme.lightTextPrimary,
                       ),
                     ),
                     Text(
                       '选择应用的外观主题',
                       style: TextStyle(
                         fontSize: context.fontSmall,
-                        color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                        color: isDark
+                            ? AppTheme.darkTextSecondary
+                            : AppTheme.lightTextSecondary,
                       ),
                     ),
                   ],
@@ -678,12 +763,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ThemeMode.light,
               ),
               SizedBox(width: context.spacingSmall),
-              _buildThemeOption(
-                isDark,
-                '深色',
-                Icons.dark_mode,
-                ThemeMode.dark,
-              ),
+              _buildThemeOption(isDark, '深色', Icons.dark_mode, ThemeMode.dark),
               SizedBox(width: context.spacingSmall),
               _buildThemeOption(
                 isDark,
@@ -698,7 +778,12 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildThemeOption(bool isDark, String label, IconData icon, ThemeMode mode) {
+  Widget _buildThemeOption(
+    bool isDark,
+    String label,
+    IconData icon,
+    ThemeMode mode,
+  ) {
     final isSelected = widget.themeMode == mode;
     final primaryColor = Theme.of(context).primaryColor;
 
@@ -714,7 +799,9 @@ class _SettingsPageState extends State<SettingsPage> {
           decoration: BoxDecoration(
             color: isSelected
                 ? primaryColor.withOpacity(0.1)
-                : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+                : (isDark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.03)),
             borderRadius: BorderRadius.circular(context.cardRadius),
             border: isSelected
                 ? Border.all(color: primaryColor.withOpacity(0.5))
@@ -726,7 +813,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 icon,
                 color: isSelected
                     ? primaryColor
-                    : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
+                    : (isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary),
                 size: context.iconMedium,
               ),
               SizedBox(height: context.spacingXSmall),
@@ -737,7 +826,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   color: isSelected
                       ? primaryColor
-                      : (isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary),
+                      : (isDark
+                            ? AppTheme.darkTextPrimary
+                            : AppTheme.lightTextPrimary),
                 ),
               ),
             ],
@@ -750,7 +841,9 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildAppSettings(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+        color: isDark
+            ? AppTheme.darkCardBackground
+            : AppTheme.lightCardBackground,
         borderRadius: BorderRadius.circular(context.cardRadius),
         boxShadow: [
           BoxShadow(
@@ -771,8 +864,8 @@ class _SettingsPageState extends State<SettingsPage> {
               subtitle: Platform.isWindows
                   ? '系统启动时自动运行应用'
                   : Platform.isLinux
-                      ? '写入 ~/.config/autostart 实现开机自启'
-                      : '下次开机时自动启动应用',
+                  ? '写入 ~/.config/autostart 实现开机自启'
+                  : '下次开机时自动启动应用',
               trailing: Platform.isWindows
                   ? _buildWindowsAutoStartControl(isDark)
                   : Switch(
@@ -880,7 +973,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       : Icon(
                           Icons.edit_calendar,
                           size: context.iconSmall,
-                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
                         ),
                   onPressed: isBusy ? null : _openTaskSchedulerWithLoading,
                   tooltip: '编辑任务计划',
@@ -922,14 +1017,18 @@ class _SettingsPageState extends State<SettingsPage> {
                   style: TextStyle(
                     fontSize: context.fontMedium,
                     fontWeight: FontWeight.w500,
-                    color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                    color: isDark
+                        ? AppTheme.darkTextPrimary
+                        : AppTheme.lightTextPrimary,
                   ),
                 ),
                 Text(
                   '自动连接时使用的配置',
                   style: TextStyle(
                     fontSize: context.fontSmall,
-                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                    color: isDark
+                        ? AppTheme.darkTextSecondary
+                        : AppTheme.lightTextSecondary,
                   ),
                 ),
               ],
@@ -947,11 +1046,15 @@ class _SettingsPageState extends State<SettingsPage> {
               child: DropdownButton<String>(
                 value: _defaultKey.isNotEmpty ? _defaultKey : null,
                 underline: const SizedBox(),
-                dropdownColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+                dropdownColor: isDark
+                    ? AppTheme.darkCardBackground
+                    : AppTheme.lightCardBackground,
                 borderRadius: BorderRadius.circular(context.cardRadius),
                 style: TextStyle(
                   fontSize: context.fontBody,
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  color: isDark
+                      ? AppTheme.darkTextPrimary
+                      : AppTheme.lightTextPrimary,
                 ),
                 onChanged: (String? newValue) {
                   if (newValue != null) {
@@ -965,20 +1068,26 @@ class _SettingsPageState extends State<SettingsPage> {
                     SystemTrayManager().updateMenu();
                   }
                 },
-                items: _configNames.asMap().entries.map<DropdownMenuItem<String>>((entry) {
-                  final index = entry.key;
-                  final item = entry.value;
-                  // 只有当前项的key等于_defaultKey，且是第一个匹配的项时才显示勾
-                  final isSelected = item.$1 == _defaultKey &&
-                      _configNames.indexWhere((e) => e.$1 == _defaultKey) == index;
-                  return DropdownMenuItem<String>(
-                    value: item.$1,
-                    child: Text(
-                      isSelected ? '✓ ${item.$2}' : item.$2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                }).toList(),
+                items: _configNames
+                    .asMap()
+                    .entries
+                    .map<DropdownMenuItem<String>>((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+                      // 只有当前项的key等于_defaultKey，且是第一个匹配的项时才显示勾
+                      final isSelected =
+                          item.$1 == _defaultKey &&
+                          _configNames.indexWhere((e) => e.$1 == _defaultKey) ==
+                              index;
+                      return DropdownMenuItem<String>(
+                        value: item.$1,
+                        child: Text(
+                          isSelected ? '✓ ${item.$2}' : item.$2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    })
+                    .toList(),
               ),
             )
           else
@@ -986,7 +1095,9 @@ class _SettingsPageState extends State<SettingsPage> {
               '暂无配置',
               style: TextStyle(
                 fontSize: context.fontBody,
-                color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                color: isDark
+                    ? AppTheme.darkTextSecondary
+                    : AppTheme.lightTextSecondary,
               ),
             ),
         ],
@@ -997,7 +1108,9 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildDataSettings(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+        color: isDark
+            ? AppTheme.darkCardBackground
+            : AppTheme.lightCardBackground,
         borderRadius: BorderRadius.circular(context.cardRadius),
         boxShadow: [
           BoxShadow(
@@ -1041,7 +1154,9 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildDebugSettings(bool isDark) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
+        color: isDark
+            ? AppTheme.darkCardBackground
+            : AppTheme.lightCardBackground,
         borderRadius: BorderRadius.circular(context.cardRadius),
         boxShadow: [
           BoxShadow(
@@ -1057,13 +1172,11 @@ class _SettingsPageState extends State<SettingsPage> {
             isDark,
             icon: Icons.article_outlined,
             title: '应用日志',
-            subtitle: '查看应用运行日志',
+            subtitle: '查看、导出或清理应用与网络核心日志',
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => LogPage(),
-                ),
+                MaterialPageRoute(builder: (context) => LogPage()),
               );
             },
           ),
@@ -1111,14 +1224,18 @@ class _SettingsPageState extends State<SettingsPage> {
                     style: TextStyle(
                       fontSize: context.fontMedium,
                       fontWeight: FontWeight.w500,
-                      color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                      color: isDark
+                          ? AppTheme.darkTextPrimary
+                          : AppTheme.lightTextPrimary,
                     ),
                   ),
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: context.fontSmall,
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
                     ),
                   ),
                 ],
@@ -1129,7 +1246,9 @@ class _SettingsPageState extends State<SettingsPage> {
             else if (onTap != null)
               Icon(
                 Icons.chevron_right,
-                color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                color: isDark
+                    ? AppTheme.darkTextSecondary
+                    : AppTheme.lightTextSecondary,
               ),
           ],
         ),
@@ -1141,7 +1260,9 @@ class _SettingsPageState extends State<SettingsPage> {
     return Divider(
       height: 1,
       indent: 72,
-      color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+      color: isDark
+          ? Colors.white.withOpacity(0.1)
+          : Colors.black.withOpacity(0.05),
     );
   }
 
@@ -1175,14 +1296,18 @@ class _SettingsPageState extends State<SettingsPage> {
                     style: TextStyle(
                       fontSize: context.fontMedium,
                       fontWeight: FontWeight.w500,
-                      color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                      color: isDark
+                          ? AppTheme.darkTextPrimary
+                          : AppTheme.lightTextPrimary,
                     ),
                   ),
                   Text(
                     '自定义应用主题颜色',
                     style: TextStyle(
                       fontSize: context.fontSmall,
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
                     ),
                   ),
                 ],
@@ -1195,7 +1320,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 color: currentColor,
                 borderRadius: BorderRadius.circular(context.spacingXSmall),
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.1),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.2)
+                      : Colors.black.withOpacity(0.1),
                   width: 2,
                 ),
               ),
@@ -1237,25 +1364,35 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(context.cardRadius)),
+        backgroundColor: isDark
+            ? AppTheme.darkCardBackground
+            : AppTheme.lightCardBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(context.cardRadius),
+        ),
         title: Text(
           '清除所有数据',
           style: TextStyle(
-            color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+            color: isDark
+                ? AppTheme.darkTextPrimary
+                : AppTheme.lightTextPrimary,
           ),
         ),
         content: Text(
           '确定要清除所有数据吗？此操作将删除所有配置，且不可恢复。',
           style: TextStyle(
-            color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+            color: isDark
+                ? AppTheme.darkTextSecondary
+                : AppTheme.lightTextSecondary,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
-              foregroundColor: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+              foregroundColor: isDark
+                  ? AppTheme.darkTextSecondary
+                  : AppTheme.lightTextSecondary,
             ),
             child: const Text('取消'),
           ),
@@ -1296,7 +1433,8 @@ class _ColorPickerDialog extends StatefulWidget {
   State<_ColorPickerDialog> createState() => _ColorPickerDialogState();
 }
 
-class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTickerProviderStateMixin {
+class _ColorPickerDialogState extends State<_ColorPickerDialog>
+    with SingleTickerProviderStateMixin {
   late Color selectedColor;
   late double hue;
   late double saturation;
@@ -1374,7 +1512,10 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
           children: [
             // 标题栏
             Container(
-              padding: ResponsiveUtils.padding(context, all: context.spacingMedium),
+              padding: ResponsiveUtils.padding(
+                context,
+                all: context.spacingMedium,
+              ),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
@@ -1413,7 +1554,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                           style: TextStyle(
                             fontSize: context.fontLarge,
                             fontWeight: FontWeight.w600,
-                            color: widget.isDark ? Colors.white : const Color(0xFF1A1A1A),
+                            color: widget.isDark
+                                ? Colors.white
+                                : const Color(0xFF1A1A1A),
                           ),
                         ),
                         SizedBox(height: context.spacingXSmall / 2),
@@ -1422,7 +1565,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                           style: TextStyle(
                             fontSize: context.fontSmall,
                             fontFamily: 'monospace',
-                            color: widget.isDark ? Colors.white54 : Colors.black45,
+                            color: widget.isDark
+                                ? Colors.white54
+                                : Colors.black45,
                           ),
                         ),
                       ],
@@ -1447,9 +1592,13 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
               child: TabBar(
                 controller: _tabController,
                 labelColor: selectedColor,
-                unselectedLabelColor: widget.isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                unselectedLabelColor: widget.isDark
+                    ? AppTheme.darkTextSecondary
+                    : AppTheme.lightTextSecondary,
                 indicatorColor: selectedColor,
-                dividerColor: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                dividerColor: widget.isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.black.withOpacity(0.05),
                 tabs: const [
                   Tab(text: '预设颜色'),
                   Tab(text: '自定义'),
@@ -1460,31 +1609,42 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
             Flexible(
               child: TabBarView(
                 controller: _tabController,
-                children: [
-                  _buildPresetTab(),
-                  _buildCustomTab(),
-                ],
+                children: [_buildPresetTab(), _buildCustomTab()],
               ),
             ),
             // 底部按钮
             Padding(
-              padding: ResponsiveUtils.padding(context, all: context.spacingMedium),
+              padding: ResponsiveUtils.padding(
+                context,
+                all: context.spacingMedium,
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: widget.isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                        foregroundColor: widget.isDark
+                            ? AppTheme.darkTextSecondary
+                            : AppTheme.lightTextSecondary,
                         side: BorderSide(
-                          color: widget.isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.2),
+                          color: widget.isDark
+                              ? Colors.white.withOpacity(0.2)
+                              : Colors.black.withOpacity(0.2),
                         ),
-                        padding: EdgeInsets.symmetric(vertical: context.spacingSmall),
+                        padding: EdgeInsets.symmetric(
+                          vertical: context.spacingSmall,
+                        ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(context.buttonRadius),
+                          borderRadius: BorderRadius.circular(
+                            context.buttonRadius,
+                          ),
                         ),
                       ),
-                      child: Text('取消', style: TextStyle(fontSize: context.fontBody)),
+                      child: Text(
+                        '取消',
+                        style: TextStyle(fontSize: context.fontBody),
+                      ),
                     ),
                   ),
                   SizedBox(width: context.spacingSmall),
@@ -1494,12 +1654,19 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                       style: ElevatedButton.styleFrom(
                         backgroundColor: selectedColor,
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: context.spacingSmall),
+                        padding: EdgeInsets.symmetric(
+                          vertical: context.spacingSmall,
+                        ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(context.buttonRadius),
+                          borderRadius: BorderRadius.circular(
+                            context.buttonRadius,
+                          ),
                         ),
                       ),
-                      child: Text('确定', style: TextStyle(fontSize: context.fontBody)),
+                      child: Text(
+                        '确定',
+                        style: TextStyle(fontSize: context.fontBody),
+                      ),
                     ),
                   ),
                 ],
@@ -1622,7 +1789,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                 color: selectedColor,
                 borderRadius: BorderRadius.circular(context.cardRadius),
                 border: Border.all(
-                  color: widget.isDark ? Colors.white.withOpacity(0.2) : Colors.black.withOpacity(0.1),
+                  color: widget.isDark
+                      ? Colors.white.withOpacity(0.2)
+                      : Colors.black.withOpacity(0.1),
                   width: 2,
                 ),
               ),
@@ -1717,7 +1886,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
             Container(
               padding: EdgeInsets.all(context.spacingSmall),
               decoration: BoxDecoration(
-                color: widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                color: widget.isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.black.withOpacity(0.03),
                 borderRadius: BorderRadius.circular(context.buttonRadius),
               ),
               child: Column(
@@ -1729,7 +1900,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                         '颜色值',
                         style: TextStyle(
                           fontSize: context.fontSmall,
-                          color: widget.isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                          color: widget.isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
                         ),
                       ),
                       Text(
@@ -1738,7 +1911,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                           fontSize: context.fontSmall,
                           fontWeight: FontWeight.w600,
                           fontFamily: 'monospace',
-                          color: widget.isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                          color: widget.isDark
+                              ? AppTheme.darkTextPrimary
+                              : AppTheme.lightTextPrimary,
                         ),
                       ),
                     ],
@@ -1751,7 +1926,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                         'RGB',
                         style: TextStyle(
                           fontSize: context.fontSmall,
-                          color: widget.isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                          color: widget.isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
                         ),
                       ),
                       Text(
@@ -1760,7 +1937,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                           fontSize: context.fontSmall,
                           fontWeight: FontWeight.w600,
                           fontFamily: 'monospace',
-                          color: widget.isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                          color: widget.isDark
+                              ? AppTheme.darkTextPrimary
+                              : AppTheme.lightTextPrimary,
                         ),
                       ),
                     ],
@@ -1792,7 +1971,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
               label,
               style: TextStyle(
                 fontSize: context.fontSmall,
-                color: widget.isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                color: widget.isDark
+                    ? AppTheme.darkTextSecondary
+                    : AppTheme.lightTextSecondary,
               ),
             ),
             Text(
@@ -1801,7 +1982,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                 fontSize: context.fontSmall,
                 fontWeight: FontWeight.w600,
                 fontFamily: 'monospace',
-                color: widget.isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                color: widget.isDark
+                    ? AppTheme.darkTextPrimary
+                    : AppTheme.lightTextPrimary,
               ),
             ),
           ],
@@ -1816,7 +1999,9 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
                 gradient: gradient,
                 borderRadius: BorderRadius.circular(context.cardRadius),
                 border: Border.all(
-                  color: widget.isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.1),
+                  color: widget.isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.1),
                 ),
               ),
             ),
@@ -1825,18 +2010,18 @@ class _ColorPickerDialogState extends State<_ColorPickerDialog> with SingleTicke
               child: SliderTheme(
                 data: SliderThemeData(
                   trackHeight: 24,
-                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 10,
+                  ),
+                  overlayShape: const RoundSliderOverlayShape(
+                    overlayRadius: 16,
+                  ),
                   activeTrackColor: Colors.transparent,
                   inactiveTrackColor: Colors.transparent,
                   thumbColor: Colors.white,
                   overlayColor: Colors.white.withOpacity(0.2),
                 ),
-                child: Slider(
-                  value: value,
-                  max: max,
-                  onChanged: onChanged,
-                ),
+                child: Slider(value: value, max: max, onChanged: onChanged),
               ),
             ),
           ],
