@@ -562,7 +562,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final primaryColor = Theme.of(context).primaryColor;
 
     return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _updateStats(),
@@ -621,19 +621,19 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildHeader(bool isDark) {
-    final primaryColor = Theme.of(context).primaryColor;
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         Container(
           width: context.w(48),
           height: context.w(48),
           decoration: BoxDecoration(
-            color: primaryColor,
-            borderRadius: BorderRadius.circular(context.radius(12)),
+            color: colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(context.radius(16)),
           ),
           child: Icon(
             Icons.dashboard_outlined,
-            color: Colors.white,
+            color: colorScheme.onPrimaryContainer,
             size: context.iconSize(28),
           ),
         ),
@@ -642,8 +642,8 @@ class _DashboardPageState extends State<DashboardPage> {
           '仪表盘',
           style: TextStyle(
             fontSize: context.sp(28),
-            fontWeight: FontWeight.bold,
-            color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
           ),
         ),
       ],
@@ -651,34 +651,22 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildConnectionStatusCard(bool isDark, bool hasConnection) {
-    final primaryColor = Theme.of(context).primaryColor;
+    final colorScheme = Theme.of(context).colorScheme;
+    final containerColor = hasConnection
+        ? colorScheme.primaryContainer
+        : colorScheme.surfaceContainerHighest;
+    final contentColor = hasConnection
+        ? colorScheme.onPrimaryContainer
+        : colorScheme.onSurfaceVariant;
     return InkWell(
       onTap: hasConnection ? () => _showConnectionDialog(isDark) : _handleConnect,
-      borderRadius: BorderRadius.circular(context.radius(20)),
+      borderRadius: BorderRadius.circular(context.radius(24)),
       child: Container(
         width: double.infinity,
         padding: ResponsiveUtils.padding(context, all: 24),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: hasConnection
-                ? (isDark
-                    ? [HSLColor.fromColor(primaryColor).withLightness(0.25).toColor(),
-                       HSLColor.fromColor(primaryColor).withLightness(0.20).toColor()]
-                    : [HSLColor.fromColor(primaryColor).withLightness(0.35).toColor(),
-                       HSLColor.fromColor(primaryColor).withLightness(0.30).toColor()])
-                : [const Color(0xFFBDBDBD), const Color(0xFF9E9E9E)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(context.radius(20)),
-          boxShadow: [
-            BoxShadow(
-              color: (hasConnection ? primaryColor : Colors.grey)
-                  .withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
+          color: containerColor,
+          borderRadius: BorderRadius.circular(context.radius(24)),
         ),
         child: Row(
           children: [
@@ -686,12 +674,12 @@ class _DashboardPageState extends State<DashboardPage> {
               width: context.w(56),
               height: context.w(56),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(context.radius(12)),
+                color: contentColor.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(context.radius(18)),
               ),
               child: Icon(
                 hasConnection ? Icons.check_circle_outline : Icons.cloud_off_outlined,
-                color: Colors.white,
+                color: contentColor,
                 size: context.iconSize(32),
               ),
             ),
@@ -704,8 +692,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     hasConnection ? '已连接' : '未连接',
                     style: TextStyle(
                       fontSize: context.sp(28),
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      color: contentColor,
                     ),
                   ),
                   SizedBox(height: context.spacing(4)),
@@ -715,20 +703,20 @@ class _DashboardPageState extends State<DashboardPage> {
                         : (_defaultConfigName.isNotEmpty ? '$_defaultConfigName (点击连接)' : '点击新建配置'),
                     style: TextStyle(
                       fontSize: context.sp(16),
-                      color: Colors.white.withOpacity(0.9),
+                      color: contentColor.withOpacity(0.82),
                     ),
                   ),
                   if (hasConnection) ...[
                     SizedBox(height: context.spacing(8)),
                     Row(
                       children: [
-                        Icon(Icons.link, color: Colors.white.withOpacity(0.9), size: context.iconSize(16)),
+                        Icon(Icons.link, color: contentColor.withOpacity(0.82), size: context.iconSize(16)),
                         SizedBox(width: context.spacing(4)),
                         Text(
                           '$_connectionCount 个活动连接',
                           style: TextStyle(
                             fontSize: context.sp(14),
-                            color: Colors.white.withOpacity(0.9),
+                            color: contentColor.withOpacity(0.82),
                           ),
                         ),
                       ],
@@ -739,26 +727,22 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
             if (hasConnection)
               GestureDetector(
-                onTap: () {
-                  // 阻止事件冒泡到InkWell
-                },
-                child: IconButton(
+                onTap: () {},
+                child: IconButton.filled(
                   onPressed: () {
                     // 显示断开连接确认对话框
                     _showConnectionDialog(isDark);
                   },
-                  icon: Icon(Icons.power_settings_new, color: Colors.white, size: context.iconSize(28)),
+                  icon: Icon(Icons.power_settings_new, size: context.iconSize(24)),
                   tooltip: '断开连接',
                 ),
               )
             else
               GestureDetector(
-                onTap: () {
-                  // 阻止事件冒泡到InkWell
-                },
-                child: IconButton(
+                onTap: () {},
+                child: IconButton.filled(
                   onPressed: _handleConnect,
-                  icon: Icon(Icons.play_arrow, color: Colors.white, size: context.iconSize(28)),
+                  icon: Icon(Icons.play_arrow, size: context.iconSize(24)),
                   tooltip: '连接',
                 ),
               ),

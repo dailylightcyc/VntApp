@@ -25,7 +25,7 @@ class _AboutPageState extends State<AboutPage> {
     final isWideScreen = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: ResponsiveUtils.padding(context,

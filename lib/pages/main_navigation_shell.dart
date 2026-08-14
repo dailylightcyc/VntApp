@@ -12,7 +12,6 @@ import 'package:vnt_app/pages/settings_page.dart';
 import 'package:vnt_app/pages/about_page.dart';
 import 'package:vnt_app/vnt/vnt_manager.dart';
 import 'package:vnt_app/utils/toast_utils.dart';
-import 'package:vnt_app/utils/responsive_utils.dart';
 import 'dart:isolate';
 import 'package:vnt_app/src/rust/api/vnt_api.dart';
 import 'package:vnt_app/widgets/custom_title_bar.dart';
@@ -389,8 +388,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final screenWidth = MediaQuery.of(context).size.width;
-    final isWideScreen = screenWidth > 800;
-    final isMediumScreen = screenWidth > 600 && screenWidth <= 800;
+    final showNavigationRail = screenWidth >= 600;
+    final extendNavigationRail = screenWidth >= 1100;
 
     // 设置状态栏颜色以适配当前主题（仅移动端）
     if (Platform.isAndroid || Platform.isIOS) {
@@ -404,7 +403,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     }
 
     return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Column(
         children: [
           // 自定义标题栏（桌面平台）
@@ -416,8 +415,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             child: Row(
               children: [
                 // 侧边导航栏（宽屏显示）
-                if (isWideScreen || isMediumScreen)
-                  _buildSideNavigation(isDark, isWideScreen),
+                if (showNavigationRail)
+                  _buildSideNavigation(isDark, extendNavigationRail),
 
                 // 主内容区域
                 Expanded(
@@ -429,298 +428,77 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         ],
       ),
       // 底部导航栏（窄屏显示）
-      bottomNavigationBar: (!isWideScreen && !isMediumScreen)
-          ? _buildBottomNavigation(isDark)
+      bottomNavigationBar: !showNavigationRail
+          ? _buildBottomNavigation()
           : null,
     );
   }
 
   Widget _buildSideNavigation(bool isDark, bool isExpanded) {
-    final primaryColor = Theme.of(context).primaryColor;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    // 根据屏幕高度自动缩放所有尺寸，避免太小或太大出现滚动
-    // 基准高度：700px，高度越小缩放比例越小，高度越大缩放比例越大
-    double heightScale;
-    if (screenHeight >= 900) {
-      heightScale = 1.2;  // 超大屏幕：放大20%
-    } else if (screenHeight >= 700) {
-      heightScale = 1.0;  // 标准屏幕：100%
-    } else if (screenHeight >= 600) {
-      heightScale = 0.85; // 中等屏幕：缩小15%
-    } else if (screenHeight >= 500) {
-      heightScale = 0.75; // 小屏幕：缩小25%
-    } else {
-      heightScale = 0.65; // 超小屏幕：缩小35%
-    }
-
-    // 根据屏幕高度动态调整导航栏宽度
-    final sideNavWidth = 100.0 * heightScale;
-
-    // 所有尺寸都基于高度缩放比例
-    final logoPadding = 14.0 * heightScale;
-    final logoSize = 48.0 * heightScale;
-    final logoRadius = 12.0 * heightScale;
-    final logoIconSize = 28.0 * heightScale;
-    final logoSpacing = 8.0 * heightScale;
-    final logoFontSize = 14.0 * heightScale;
-    final navSpacing = 20.0 * heightScale;
-    final navItemPadding = 8.0 * heightScale;
-    final navItemVerticalPadding = 12.0 * heightScale;
-    final navIconSize = 24.0 * heightScale;
-    final navFontSize = 12.0 * heightScale;
-    final navItemSpacing = 4.0 * heightScale;
-    final navItemBottomMargin = 8.0 * heightScale;
-    final themeTogglePadding = 8.0 * heightScale;
-    final themeToggleVerticalPadding = 12.0 * heightScale;
-    final bottomSpacing = 14.0 * heightScale;
-
-    return Container(
-      width: sideNavWidth,
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
-            blurRadius: 10,
-            offset: const Offset(2, 0),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Column(
+    final scheme = Theme.of(context).colorScheme;
+    return NavigationRail(
+      selectedIndex: _selectedIndex,
+      onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+      extended: isExpanded,
+      minWidth: 80,
+      minExtendedWidth: 220,
+      labelType: isExpanded ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+      groupAlignment: -0.72,
+      leading: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 16, 12, 24),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Logo 区域
-            Container(
-              padding: EdgeInsets.all(logoPadding),
-              child: Column(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(logoRadius),
-                    child: Image.asset(
-                      'assets/ic_launcher.png',
-                      width: logoSize,
-                      height: logoSize,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        // 如果图片加载失败，显示默认图标
-                        return Container(
-                          width: logoSize,
-                          height: logoSize,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [primaryColor, primaryColor.withOpacity(0.7)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(logoRadius),
-                          ),
-                          child: Icon(
-                            Icons.hub,
-                            color: Colors.white,
-                            size: logoIconSize,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  SizedBox(height: logoSpacing),
-                  Text(
-                    'VNT',
-                    style: TextStyle(
-                      fontSize: logoFontSize,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-                    ),
-                  ),
-                ],
-              ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset('assets/ic_launcher.png', width: 44, height: 44),
             ),
-            SizedBox(height: navSpacing),
-
-            // 导航项
-            Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: navItemPadding),
-                itemCount: _navItems.length,
-                itemBuilder: (context, index) {
-                  final isSelected = _selectedIndex == index;
-                  final item = _navItems[index];
-
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: navItemBottomMargin),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: () => setState(() => _selectedIndex = index),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: navItemPadding,
-                            vertical: navItemVerticalPadding,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? primaryColor.withOpacity(0.1)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(12),
-                            border: isSelected
-                                ? Border.all(color: primaryColor.withOpacity(0.3))
-                                : null,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                isSelected ? item.activeIcon : item.icon,
-                                color: isSelected
-                                    ? primaryColor
-                                    : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
-                                size: navIconSize,
-                              ),
-                              SizedBox(height: navItemSpacing),
-                              Text(
-                                item.label,
-                                style: TextStyle(
-                                  fontSize: navFontSize,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                  color: isSelected
-                                      ? primaryColor
-                                      : (isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary),
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // 底部主题切换
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: themeTogglePadding),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    final themeProvider = ThemeProvider.of(context);
-                    if (themeProvider != null) {
-                      themeProvider.setThemeMode(
-                        isDark ? ThemeMode.light : ThemeMode.dark,
-                      );
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: themeTogglePadding,
-                      vertical: themeToggleVerticalPadding,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withOpacity(0.05)
-                          : Colors.black.withOpacity(0.03),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isDark ? Icons.light_mode : Icons.dark_mode,
-                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
-                          size: navIconSize,
-                        ),
-                        SizedBox(height: navItemSpacing),
-                        Text(
-                          isDark ? '日间' : '暗黑',
-                          style: TextStyle(
-                            fontSize: navFontSize,
-                            color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(height: bottomSpacing),
+            if (isExpanded) ...[
+              const SizedBox(width: 12),
+              Text('VNT', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+            ],
           ],
         ),
       ),
+      trailing: Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: isExpanded
+            ? TextButton.icon(
+                onPressed: () => ThemeProvider.of(context)?.setThemeMode(
+                  isDark ? ThemeMode.light : ThemeMode.dark,
+                ),
+                icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+                label: Text(isDark ? '浅色模式' : '深色模式'),
+              )
+            : IconButton.filledTonal(
+                onPressed: () => ThemeProvider.of(context)?.setThemeMode(
+                  isDark ? ThemeMode.light : ThemeMode.dark,
+                ),
+                icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+                tooltip: isDark ? '浅色模式' : '深色模式',
+              ),
+      ),
+      destinations: _navItems
+          .map((item) => NavigationRailDestination(
+                icon: Icon(item.icon, color: scheme.onSurfaceVariant),
+                selectedIcon: Icon(item.activeIcon),
+                label: Text(item.label),
+              ))
+          .toList(),
     );
   }
 
-  Widget _buildBottomNavigation(bool isDark) {
-    final primaryColor = Theme.of(context).primaryColor;
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCardBackground : AppTheme.lightCardBackground,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(_navItems.length, (index) {
-              final item = _navItems[index];
-              final isSelected = _selectedIndex == index;
-
-              return Expanded(
-                child: InkWell(
-                  onTap: () => setState(() => _selectedIndex = index),
-                  borderRadius: BorderRadius.circular(12),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? primaryColor.withOpacity(0.1)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isSelected ? item.activeIcon : item.icon,
-                          color: isSelected
-                              ? primaryColor
-                              : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
-                          size: 24,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item.label,
-                          style: TextStyle(
-                            fontSize: context.fontXSmall,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                            color: isSelected
-                                ? primaryColor
-                                : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-        ),
-      ),
+  Widget _buildBottomNavigation() {
+    return NavigationBar(
+      selectedIndex: _selectedIndex,
+      onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+      destinations: _navItems
+          .map((item) => NavigationDestination(
+                icon: Icon(item.icon),
+                selectedIcon: Icon(item.activeIcon),
+                label: item.label,
+              ))
+          .toList(),
     );
   }
 

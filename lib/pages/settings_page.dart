@@ -492,7 +492,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final isWideScreen = screenWidth > 600;
 
     return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkBackground : AppTheme.lightBackground,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(context.spacingMedium),
