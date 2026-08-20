@@ -3,7 +3,7 @@ name: VntApp
 on:
   push:
     branches:
-      - flutter
+      - codex/vntAPP-R
   workflow_dispatch:
     inputs:
       rebuild_android_so:
@@ -63,9 +63,9 @@ jobs:
 
     runs-on: ${{ matrix.OS }}
     steps:
-      - uses: actions/checkout@main
-        with:
-         ref: flutter
+      # 默认检出触发本次运行的分支和提交，避免手动运行自己的分支时
+      # 又被强制切回上游 flutter 分支。
+      - uses: actions/checkout@v4
 
       - name: 设置 Xcode 版本
         if: matrix.NAME == 'vntApp-IOS'
@@ -423,7 +423,6 @@ jobs:
           path: ./artifacts
       - name: List
         run: find ./artifacts
-
 
 
 
