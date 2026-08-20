@@ -19,7 +19,7 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -65,7 +65,7 @@ jobs:
     steps:
       # 默认检出触发本次运行的分支和提交，避免手动运行自己的分支时
       # 又被强制切回上游 flutter 分支。
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: 设置 Xcode 版本
         if: matrix.NAME == 'vntApp-IOS'
@@ -75,7 +75,7 @@ jobs:
         
       - name: 设置JDK环境
         if: matrix.NAME == 'vntApp-android'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'microsoft'
           java-version: 17
@@ -89,7 +89,7 @@ jobs:
 
       - name: 设置Flutter环境
         if: "!startsWith(matrix.NAME, 'vntApp-linux')"
-        uses: subosito/flutter-action@v2.12.0 #https://github.com/subosito/flutter-action/issues/277
+        uses: subosito/flutter-action@v2.23.0
         with:
           channel: stable
           flutter-version: ${{ matrix.flutter-version }}
@@ -120,7 +120,7 @@ jobs:
           echo "========================================="
 
       - name: 缓存 Flutter / Pub / Gradle（标准版）
-        uses: actions/cache@main
+        uses: actions/cache@v5
         with:
           path: |
             ~/.pub-cache
@@ -141,8 +141,6 @@ jobs:
            rustup target add armv7-linux-androideabi
            rustup target add x86_64-linux-android
            rustup target add i686-linux-android
-           sed -i 's|main|Android|' rust/Cargo.toml
-           
            # rust/flutter_rust_bridge_codegen --version
 
            # echo "生成桥接代码"
@@ -203,13 +201,17 @@ jobs:
 
       - name: 上传 jniLibs
         if: matrix.NAME == 'vntApp-android' && github.event.inputs.rebuild_android_so == 'true'
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7
         with:
           name: android-jniLibs
           path: android/app/src/main/jniLibs/
+          if-no-files-found: error
           
       - name: 构建 Android vntAPP
         if: matrix.NAME == 'vntApp-android'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
         run: |
          #sed -i 's|branch = "1.2.x"|rev = "501a9e8"|' rust/Cargo.toml
          
@@ -222,11 +224,11 @@ jobs:
          mv -f build/app/outputs/apk/release/app-release.apk app-release.apk
          #mv -f build/app/outputs/flutter-apk/app-release.apk app-release.apk
 
-         if [ -n "${{ secrets.KEYSTORE_PASSWORD }}" ] && [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+         if [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEYSTORE_BASE64" ]; then
            echo "使用仓库密钥签名"
-           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > keystore.jks
+           printf '%s' "$KEYSTORE_BASE64" | base64 -d > keystore.jks
            keystore_path="keystore.jks"
-           password="${{ secrets.KEYSTORE_PASSWORD }}"
+           password="$KEYSTORE_PASSWORD"
          else
            echo "生成临时密钥签名"
            keystore_path="keystore.jks"
@@ -243,11 +245,17 @@ jobs:
             -dname "CN=Android, OU=Android, O=Android, L=BeiJing, ST=BeiJing, C=CN"
          fi
           
-         /usr/local/lib/android/sdk/build-tools/34.0.0/apksigner sign \
+         apksigner_path="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -1)"
+         if [ -z "$apksigner_path" ]; then
+           echo "未找到 Android SDK apksigner" >&2
+           exit 1
+         fi
+
+         "$apksigner_path" sign \
            --ks "$keystore_path" \
            --ks-key-alias key \
-           --ks-pass pass:$password \
-           --key-pass pass:$password \
+           --ks-pass "pass:$password" \
+           --key-pass "pass:$password" \
            --out vntApp-android.apk \
            --in app-release.apk \
            --v1-signing-enabled true \
@@ -275,27 +283,6 @@ jobs:
         run: |
           rustup target add aarch64-apple-darwin
           rustup target add x86_64-apple-darwin
-
-      - name: 修复 tun-rs 代码（macOS/iOS）
-        if: matrix.NAME == 'vntApp-macOS' || matrix.NAME == 'vntApp-IOS'
-        shell: bash
-        run: |
-          echo "预下载依赖以触发 tun-rs 下载"
-          cd rust
-          cargo fetch || true
-          
-          echo "修复 tun-rs size_of 导入问题"
-          TUN_FILE=$(find ~/.cargo/registry/src -name "mod.rs" -path "*/tun-rs-*/src/platform/macos/tap/mod.rs" 2>/dev/null | head -1)
-          if [ -n "$TUN_FILE" ] && [ -f "$TUN_FILE" ]; then
-            echo "找到文件: $TUN_FILE"
-            echo 'use std::mem::size_of;' | sed -i '' '35r /dev/stdin' "$TUN_FILE" || \
-            sed -i '' '35a\
-          use std::mem::size_of;' "$TUN_FILE"
-            echo "✅ 已修复"
-          else
-            echo "⚠️ 未找到 tun-rs 文件，可能还未下载"
-          fi
-          cd ..
 
       - name: 构建 macOS 应用
         if: matrix.NAME == 'vntApp-macOS'
@@ -349,7 +336,6 @@ jobs:
           echo "0. 清理 Xcode 缓存"
           rm -rf ~/Library/Developer/Xcode/DerivedData
           rm -rf ios/Pods
-          rm -rf ios/Podfile.lock
           rm -rf ios/.symlinks
           rm -rf ios/Flutter/Flutter.framework
           rm -rf ios/Flutter/App.framework
@@ -383,11 +369,7 @@ jobs:
           
           echo "完成：IPA 已生成"
 
-      - name: 设置 QEMU（Linux arm64 跨架构）
-        if: startsWith(matrix.NAME, 'vntApp-linux')
-        uses: docker/setup-qemu-action@master
-
-      - name: 构建 Linux AppImage（Docker Ubuntu 18.04）
+      - name: 构建 Linux AppImage（Docker Ubuntu 20.04）
         if: startsWith(matrix.NAME, 'vntApp-linux')
         run: |
           chmod +x linux/build_linux_appimage.sh
@@ -402,9 +384,10 @@ jobs:
               ${{ matrix.BUNDLE_DIR }} ${{ matrix.APPIMAGE_ARCH }}
 
       - name: Archive artifact
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.NAME }}
+          if-no-files-found: error
           path: |
             ${{ matrix.NAME == 'vntApp-android' && 'vntApp-android.apk' || '' }}
             ${{ matrix.NAME == 'vntApp-windows' && 'vntApp-windows.zip' || '' }}
@@ -412,16 +395,3 @@ jobs:
             ${{ matrix.NAME == 'vntApp-IOS' && 'build/ios/iphoneos/vntAPP.ipa' || '' }}
             ${{ matrix.NAME == 'vntApp-linux-x86_64' && 'vntApp-linux-x86_64.AppImage' || '' }}
             ${{ matrix.NAME == 'vntApp-linux-arm64' && 'vntApp-linux-aarch64.AppImage' || '' }}
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./artifacts
-      - name: List
-        run: find ./artifacts
-
-

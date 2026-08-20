@@ -18,6 +18,10 @@ add_executable(${BINARY_NAME} WIN32
   "runner.exe.manifest"
 )
 
+# runner.exe.manifest 是 UAC 配置的唯一来源。关闭链接器默认生成的
+# asInvoker 片段，避免 mt.exe 合并时与 requireAdministrator 冲突。
+target_link_options(${BINARY_NAME} PRIVATE "/MANIFESTUAC:NO")
+
 # Apply the standard set of build settings. This can be removed for applications
 # that need different build settings.
 apply_standard_settings(${BINARY_NAME})
@@ -41,9 +45,6 @@ target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
-
-SET_TARGET_PROPERTIES(${BINARY_NAME} PROPERTIES LINK_FLAGS "/MANIFESTUAC:\"level='asInvoker' uiAccess='false'\" /SUBSYSTEM:WINDOWS")
-
 
 set(DLLS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../dlls")
 
