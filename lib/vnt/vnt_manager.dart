@@ -143,6 +143,14 @@ class VntBox {
     required this.networkConfig,
   });
   static Future<VntBox> create(NetworkConfig config, SendPort uiCall) async {
+    AppLogger.info(
+      'connection',
+      '初始化共享 Rust VNT 核心；配置=${config.configName}；'
+          '协议=${config.protocol}；服务器=${config.serverAddress}；'
+          '物理出口=${config.localDev.isEmpty ? '系统自动' : config.localDev}；'
+          '虚拟网卡=${config.virtualNetworkCardName.isEmpty ? 'vnt-tun' : config.virtualNetworkCardName}；'
+          'MTU=${config.mtu}；打洞=${config.punchModel}；通道=${config.useChannelType}',
+    );
     var vntConfig = VntConfig(
       tap: false,
       token: config.token,
@@ -182,6 +190,7 @@ class VntBox {
     );
     var vntCall = VntApiCallback(
       successFn: () {
+        AppLogger.info('connection', 'VNT 核心连接就绪；配置=${config.configName}');
         uiCall.send('success');
       },
       createTunFn: (info) {
@@ -192,6 +201,15 @@ class VntBox {
         );
       },
       connectFn: (info) {
+        if (info.count <= BigInt.from(3) ||
+            info.count.remainder(BigInt.from(5)) == BigInt.zero) {
+          AppLogger.warning(
+            'connection',
+            '等待服务器握手响应；配置=${config.configName}；'
+                '第${info.count}次；目标=${info.address}；'
+                '物理出口=${config.localDev.isEmpty ? '系统自动' : config.localDev}',
+          );
+        }
         uiCall.send(info);
       },
       handshakeFn: (info) {
@@ -237,6 +255,7 @@ class VntBox {
         uiCall.send(info);
       },
       stopFn: () {
+        AppLogger.warning('connection', 'VNT 核心已停止；配置=${config.configName}');
         uiCall.send('stop');
       },
     );
@@ -338,7 +357,7 @@ class VntManager {
     try {
       connecting = true;
 
-      final effectiveConfig = _effectiveConfig(config);
+      var effectiveConfig = _effectiveConfig(config);
       AppLogger.info(
         'connection',
         '开始连接；配置=${config.configName}，协议=${effectiveConfig.protocol}，'
@@ -346,6 +365,19 @@ class VntManager {
       );
 
       await PlatformCapabilityService.prepareForConnection();
+
+      if (Platform.isWindows) {
+        final selectedInterface =
+            await PlatformCapabilityService.resolveWindowsPhysicalInterface(
+              effectiveConfig.localDev,
+            );
+        if (selectedInterface != null &&
+            selectedInterface != effectiveConfig.localDev) {
+          effectiveConfig = effectiveConfig.copyWith(
+            localDev: selectedInterface,
+          );
+        }
+      }
 
       // macOS 权限检查：如果没有权限，请求重新启动
       if (Platform.isMacOS) {

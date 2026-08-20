@@ -22,10 +22,13 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
   final _nameController = TextEditingController();
   final _groupNumberController = TextEditingController();
   final _deviceNameController = TextEditingController(
-      text: () {
-        String version = Platform.operatingSystemVersion.replaceAll('"', '').trim();
-        return version.length > 64 ? version.substring(0, 64) : version;
-      }());
+    text: () {
+      String version = Platform.operatingSystemVersion
+          .replaceAll('"', '')
+          .trim();
+      return version.length > 64 ? version.substring(0, 64) : version;
+    }(),
+  );
   final _virtualIPv4Controller = TextEditingController();
   final _localDevController = TextEditingController();
   final _hookController = TextEditingController();
@@ -125,21 +128,23 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
     _groupPasswordController.text = config.groupPassword;
     _isServerEncrypted = config.isServerEncrypted ? 'OPEN' : 'CLOSE';
     _communicationMethod = config.protocol;
-    _dataFingerprintVerification =
-        config.dataFingerprintVerification ? 'OPEN' : 'CLOSE';
+    _dataFingerprintVerification = config.dataFingerprintVerification
+        ? 'OPEN'
+        : 'CLOSE';
     _encryptionAlgorithm = config.encryptionAlgorithm;
     _deviceIDController.text = config.deviceID;
     _virtualNetworkCardNameController.text = config.virtualNetworkCardName;
     _mtuController.text = config.mtu.toString();
     for (int portGroup in config.ports) {
-      _portGroupControllers
-          .add(TextEditingController(text: portGroup.toString()));
+      _portGroupControllers.add(
+        TextEditingController(text: portGroup.toString()),
+      );
     }
     for (String dns in config.dns) {
       _dnsControllers.add(TextEditingController(text: dns));
     }
-    _simulatedPacketLossRateController.text =
-        config.simulatedPacketLossRate.toString();
+    _simulatedPacketLossRateController.text = config.simulatedPacketLossRate
+        .toString();
     _simulatedLatencyController.text = config.simulatedLatency.toString();
     _ipv4Selected = config.punchModel == 'ipv4' || config.punchModel == 'all';
     _ipv6Selected = config.punchModel == 'ipv6' || config.punchModel == 'all';
@@ -185,7 +190,9 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
         }
       }
       NetworkConfig config = NetworkConfig(
-        itemKey: widget.config?.itemKey ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        itemKey:
+            widget.config?.itemKey ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
         configName: name,
         token: _groupNumberController.text,
         deviceName: _deviceNameController.text,
@@ -229,11 +236,13 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
         simulatedPacketLossRate:
             double.tryParse(_simulatedPacketLossRateController.text) ?? 0,
         simulatedLatency: int.tryParse(_simulatedLatencyController.text) ?? 0,
-        punchModel: (_ipv4Selected && _ipv6Selected) ||
+        punchModel:
+            (_ipv4Selected && _ipv6Selected) ||
                 (!_ipv4Selected && !_ipv6Selected)
             ? 'all'
             : (_ipv4Selected ? 'ipv4' : 'ipv6'),
-        useChannelType: (_p2pSelected && _relaySelected) ||
+        useChannelType:
+            (_p2pSelected && _relaySelected) ||
                 (!_p2pSelected && !_relaySelected)
             ? 'all'
             : (_p2pSelected ? 'p2p' : 'relay'),
@@ -242,7 +251,9 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
         allowWg: _allowWg == 'FALSE' ? false : true,
         localDev: _localDevController.text,
         disableRelay: _disableRelay,
-        hook: (Platform.isAndroid || Platform.isIOS) ? '' : _hookController.text,
+        hook: (Platform.isAndroid || Platform.isIOS)
+            ? ''
+            : _hookController.text,
       );
       Navigator.pop(context, config);
     } else {
@@ -286,7 +297,9 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
         title: Text(
           '组网参数配置',
           style: TextStyle(
-            color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+            color: isDark
+                ? AppTheme.darkTextPrimary
+                : AppTheme.lightTextPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -314,16 +327,15 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
         ),
         actions: [
           Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Tooltip(
-                  message: '保存',
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.save,
-                      color: primaryColor,
-                    ),
-                    onPressed: _submitForm,
-                  ))),
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Tooltip(
+              message: '保存',
+              child: IconButton(
+                icon: Icon(Icons.save, color: primaryColor),
+                onPressed: _submitForm,
+              ),
+            ),
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -347,7 +359,8 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
                   tooltipMessage: '(相同的token和服务器才能组建一个虚拟局域网)',
                   maxLength: 64,
                   obscureText: !_isTokenVisible, // 控制是否隐藏文本
-                  suffixIcon: IconButton( // 可见性切换按钮
+                  suffixIcon: IconButton(
+                    // 可见性切换按钮
                     icon: Icon(
                       _isTokenVisible ? Icons.visibility : Icons.visibility_off,
                     ),
@@ -364,17 +377,12 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
                     return null;
                   },
                 ),
-                _buildTextFormField(
-                  _deviceNameController,
-                  '设备名称',
-                  64,
-                  (value) {
-                    if (value == null || value.isEmpty) {
-                      return '请输入设备名称';
-                    }
-                    return null;
-                  },
-                ),
+                _buildTextFormField(_deviceNameController, '设备名称', 64, (value) {
+                  if (value == null || value.isEmpty) {
+                    return '请输入设备名称';
+                  }
+                  return null;
+                }),
                 CustomTooltipTextField(
                   controller: _virtualIPv4Controller,
                   labelText: '虚拟IPv4',
@@ -396,7 +404,8 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
                 CustomTooltipTextField(
                   controller: _serverAddressController,
                   labelText: '服务器地址',
-                  tooltipMessage: '(VNTS地址,udp和tcp模式使用txt:前缀启用TXT记录解析,使用http:前缀启用302重定向解析)',
+                  tooltipMessage:
+                      '(VNTS地址,udp和tcp模式使用txt:前缀启用TXT记录解析,使用http:前缀启用302重定向解析)',
                   maxLength: 64,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -435,13 +444,14 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
                           _communicationMethod != 'TCP') {
                         return '只有UDP或TCP模式支持txt解析';
                       }
-                      final txtDomainRegex =
-                          RegExp(r'^txt:[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                      final txtDomainRegex = RegExp(
+                        r'^txt:[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                      );
                       if (txtDomainRegex.hasMatch(value)) {
                         return null;
                       }
                       return '域名格式错误';
-                    } 
+                    }
                     return null;
                   },
                 ),
@@ -451,7 +461,7 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
                     ('UDP', 'UDP'),
                     ('TCP', 'TCP'),
                     ('WS', 'WS'),
-                    ('WSS', 'WSS')
+                    ('WSS', 'WSS'),
                   ],
                   _communicationMethod,
                   (value) {
@@ -523,8 +533,9 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
                   '示例：tcp:0.0.0.0:80-10.26.0.10:80',
                   48,
                   (value) {
-                    final regex =
-                        RegExp(r'^(tcp|udp):[^:]+:(\d{1,5})-[^:]+:(\d{1,5})$');
+                    final regex = RegExp(
+                      r'^(tcp|udp):[^:]+:(\d{1,5})-[^:]+:(\d{1,5})$',
+                    );
                     final match = regex.firstMatch(value);
 
                     if (match != null) {
@@ -573,7 +584,7 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
                     'aes_ecb',
                     'aes_cbc',
                     'sm4_cbc',
-                    'aes_gcm'
+                    'aes_gcm',
                   ],
                   _encryptionAlgorithm,
                   (value) {
@@ -620,7 +631,8 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
                       CustomTooltipTextField(
                         controller: _localDevController,
                         labelText: '本地物理网卡',
-                        tooltipMessage: '指定用于组网通信的物理网卡（留空则由系统自动路由）\n\n支持格式：\n• Windows: 友好名称（如"以太网"、"WLAN"）、索引号\n• Linux: 网卡名（如 eth0、wlan0）\n• macOS: 网卡名（如 en0、en1）\n• Android: 网卡名（如 wlan0、rmnet_data0）\n\n建议：\n• 一般情况留空即可\n• 多网卡环境或需要 IP 代理和出口节点功能时才需要指定',
+                        tooltipMessage:
+                            '指定用于组网通信的物理网卡（留空则由系统自动路由）\n\n支持格式：\n• Windows: 友好名称（如"以太网"、"WLAN"）、索引号\n• Linux: 网卡名（如 eth0、wlan0）\n• macOS: 网卡名（如 en0、en1）\n• Android: 网卡名（如 wlan0、rmnet_data0）\n\n建议：\n• 一般情况留空即可\n• Windows 同时运行 Meta/Clash 等 TUN 程序并出现 UDP 10060 时，请填写真实的以太网或 WLAN\n• 多网卡环境或需要 IP 代理和出口节点功能时才需要指定',
                         maxLength: 50,
                         validator: null,
                       ),
@@ -670,22 +682,18 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
                         '虚拟网卡名称',
                         10,
                       ),
-                      _buildTextFormField(
-                        _mtuController,
-                        '虚拟网卡mtu',
-                        null,
-                        (value) {
-                          if (value == null || value.isEmpty) {
-                            return null;
-                          }
-                          final n = num.tryParse(value);
-                          if (n == null || n <= 0) {
-                            return '请输入有效的正整数';
-                          }
+                      _buildTextFormField(_mtuController, '虚拟网卡mtu', null, (
+                        value,
+                      ) {
+                        if (value == null || value.isEmpty) {
                           return null;
-                        },
-                        TextInputType.number,
-                      ),
+                        }
+                        final n = num.tryParse(value);
+                        if (n == null || n <= 0) {
+                          return '请输入有效的正整数';
+                        }
+                        return null;
+                      }, TextInputType.number),
                       const SizedBox(height: 16),
                       _buildFormFieldWithValidation(
                         '打洞模式',
@@ -833,10 +841,7 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
   ]) {
     return TextFormField(
       controller: controller,
-      decoration: InputDecoration(
-        labelText: labelText,
-        suffixIcon: suffixIcon,
-      ),
+      decoration: InputDecoration(labelText: labelText, suffixIcon: suffixIcon),
       maxLength: maxLength,
       validator: validator,
       keyboardType: keyboardType,
@@ -848,7 +853,10 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: TextStyle(fontSize: context.fontMedium, fontWeight: FontWeight.bold),
+      style: TextStyle(
+        fontSize: context.fontMedium,
+        fontWeight: FontWeight.bold,
+      ),
     );
   }
 
@@ -915,10 +923,7 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 12.0),
-          child: Text(title),
-        ),
+        Padding(padding: const EdgeInsets.only(top: 12.0), child: Text(title)),
         Expanded(
           child: Wrap(
             spacing: 4,
@@ -961,7 +966,8 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
                 child: TextFormField(
                   controller: controller,
                   decoration: InputDecoration(
-                      labelText: '$label${index == 0 ? '' : ' ---$index'}'),
+                    labelText: '$label${index == 0 ? '' : ' ---$index'}',
+                  ),
                   maxLength: 32,
                   keyboardType: keyboardType,
                   validator: validator,
@@ -1051,10 +1057,7 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
       decoration: InputDecoration(labelText: labelText),
       isExpanded: true, // 让下拉框内容自适应宽度，防止超出窗口
       items: items.map((String item) {
-        return DropdownMenuItem(
-          value: item,
-          child: Text(item),
-        );
+        return DropdownMenuItem(value: item, child: Text(item));
       }).toList(),
       onChanged: onChanged,
     );
@@ -1107,7 +1110,10 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
                             onChanged: onChanged1,
                             visualDensity: VisualDensity.compact,
                           ),
-                          Text(valueName1, style: TextStyle(fontSize: context.fontSmall)),
+                          Text(
+                            valueName1,
+                            style: TextStyle(fontSize: context.fontSmall),
+                          ),
                         ],
                       ),
                       Row(
@@ -1118,7 +1124,10 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
                             onChanged: onChanged2,
                             visualDensity: VisualDensity.compact,
                           ),
-                          Text(valueName2, style: TextStyle(fontSize: context.fontSmall)),
+                          Text(
+                            valueName2,
+                            style: TextStyle(fontSize: context.fontSmall),
+                          ),
                         ],
                       ),
                     ],
@@ -1155,7 +1164,10 @@ class _NetworkConfigInputPageState extends State<NetworkConfigInputPage> {
                   padding: const EdgeInsets.only(top: 5.0),
                   child: Text(
                     '至少勾选一个选项',
-                    style: TextStyle(color: Colors.red, fontSize: context.fontXSmall),
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: context.fontXSmall,
+                    ),
                   ),
                 ),
             ],

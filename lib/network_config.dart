@@ -65,7 +65,11 @@ class NetworkConfig {
     required this.hook,
   });
 
-  NetworkConfig copyWith({String? serverAddress, String? protocol}) {
+  NetworkConfig copyWith({
+    String? serverAddress,
+    String? protocol,
+    String? localDev,
+  }) {
     return NetworkConfig(
       itemKey: itemKey,
       configName: configName,
@@ -95,7 +99,7 @@ class NetworkConfig {
       useChannelType: useChannelType,
       compressor: compressor,
       allowWg: allowWg,
-      localDev: localDev,
+      localDev: localDev ?? this.localDev,
       disableRelay: disableRelay,
       hook: hook,
     );

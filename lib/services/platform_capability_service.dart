@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:vnt_app/services/app_logger.dart';
@@ -16,7 +17,6 @@ class PlatformCapabilityService {
 
   static const int _capNetAdmin = 12;
   static PlatformCapabilityException? _linuxStartupFailure;
-  static bool _windowsFirewallPrepared = false;
 
   /// Linux 授权由原生 Runner 在 Flutter 引擎启动前完成；
   /// Dart 层只负责记录和给出可诊断的错误。
@@ -46,7 +46,6 @@ class PlatformCapabilityService {
       await _verifyLinuxCapability();
     } else if (Platform.isWindows) {
       await _verifyWindowsAdministrator();
-      await _prepareWindowsFirewall();
     } else {
       AppLogger.info('permission', '平台使用系统 VPN 授权或既有 macOS 授权流程');
     }
@@ -100,24 +99,41 @@ class PlatformCapabilityService {
     AppLogger.info('permission', 'Windows 管理员权限检查通过');
   }
 
-  static Future<void> _prepareWindowsFirewall() async {
-    if (_windowsFirewallPrepared) return;
-    final executable = Platform.resolvedExecutable.replaceAll("'", "''");
-    const inboundName = 'VNT App UDP Inbound';
-    const outboundName = 'VNT App UDP Outbound';
-    final script = <String>[
-      r"$ErrorActionPreference='Stop'",
-      "\$program='$executable'",
-      for (final rule in <(String, String)>[
-        (inboundName, 'Inbound'),
-        (outboundName, 'Outbound'),
-      ]) ...<String>[
-        "\$rule=Get-NetFirewallRule -DisplayName '${rule.$1}' -ErrorAction SilentlyContinue",
-        "if(\$null -eq \$rule){New-NetFirewallRule -DisplayName '${rule.$1}' -Direction ${rule.$2} -Action Allow -Enabled True -Profile Any -Protocol UDP -Program \$program | Out-Null}else{\$rule | Set-NetFirewallRule -Direction ${rule.$2} -Action Allow -Enabled True -Profile Any; \$rule | Get-NetFirewallApplicationFilter | Set-NetFirewallApplicationFilter -Program \$program}",
-      ],
-    ].join(';');
+  /// 返回 Rust `local_dev` 使用的 Windows 物理网卡索引。
+  /// 显式配置优先；留空时只在“已连接、有 IPv4 默认网关”的物理网卡中选择。
+  static Future<String?> resolveWindowsPhysicalInterface(
+    String configuredLocalDev,
+  ) async {
+    if (!Platform.isWindows) return null;
+    final configured = configuredLocalDev.trim();
+    if (configured.isNotEmpty) {
+      AppLogger.info(
+        'network-route',
+        'Windows 使用用户指定的物理网卡；localDev=$configured',
+      );
+      return configured;
+    }
+
+    const script = r'''
+$ErrorActionPreference='Stop'
+[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new()
+$physical=@(Get-NetAdapter -Physical | Where-Object Status -eq 'Up' | ForEach-Object {
+  $adapter=$_
+  $config=Get-NetIPConfiguration -InterfaceIndex $adapter.ifIndex -ErrorAction SilentlyContinue
+  $ipif=Get-NetIPInterface -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue | Select-Object -First 1
+  if($null -ne $config.IPv4Address -and $null -ne $config.IPv4DefaultGateway -and $null -ne $ipif) {
+    [PSCustomObject]@{index=[int]$adapter.ifIndex;name=[string]$adapter.Name;description=[string]$adapter.InterfaceDescription;metric=[int]$ipif.InterfaceMetric;speed=[string]$adapter.LinkSpeed}
+  }
+} | Sort-Object metric,index)
+$virtual=@(Get-NetAdapter | Where-Object {$_.Status -eq 'Up' -and -not $_.HardwareInterface -and (($_.Name + ' ' + $_.InterfaceDescription) -match '(?i)wintun|tap|tunnel|meta|clash|vpn')} | ForEach-Object {
+  [PSCustomObject]@{index=[int]$_.ifIndex;name=[string]$_.Name;description=[string]$_.InterfaceDescription}
+})
+[PSCustomObject]@{physical=$physical;virtual=$virtual} | ConvertTo-Json -Depth 4 -Compress
+''';
+
     try {
       final result = await Process.run('powershell.exe', <String>[
+        '-NoLogo',
         '-NoProfile',
         '-NonInteractive',
         '-ExecutionPolicy',
@@ -129,15 +145,79 @@ class PlatformCapabilityService {
         throw ProcessException(
           'powershell.exe',
           const <String>[],
-          '${result.stderr}'.trim(),
+          result.stderr.toString().trim(),
           result.exitCode,
         );
       }
-      _windowsFirewallPrepared = true;
-      AppLogger.info('permission', 'Windows 当前程序 UDP 防火墙规则检查通过');
+      final output = result.stdout.toString().trim();
+      if (output.isEmpty) throw const FormatException('PowerShell 未返回网卡信息');
+      final decoded = jsonDecode(output) as Map<String, dynamic>;
+      final physical = _asWindowsInterfaceList(decoded['physical']);
+      final virtual = _asWindowsInterfaceList(decoded['virtual']);
+
+      AppLogger.info(
+        'network-route',
+        'Windows 可用物理出口=${_formatWindowsInterfaces(physical)}',
+      );
+      if (virtual.isNotEmpty) {
+        AppLogger.warning(
+          'network-route',
+          'Windows 检测到活动虚拟网卡=${_formatWindowsInterfaces(virtual)}；'
+              'VNT 控制通道不会使用这些接口',
+        );
+      }
+      if (physical.isEmpty) {
+        if (virtual.isNotEmpty) {
+          throw const PlatformCapabilityException(
+            '检测到活动的 Meta/Clash/VPN 虚拟网卡，但没有找到可用物理出口。'
+            '请在配置的“本地物理网卡”中填写 WLAN/以太网名称或 ifIndex。',
+          );
+        }
+        AppLogger.warning(
+          'network-route',
+          '没有找到同时具备 IPv4 地址和默认网关的活动物理网卡，'
+              '将由 Windows 系统路由；若出现 10060，请在配置中指定本地物理网卡',
+        );
+        return null;
+      }
+
+      final selected = physical.first;
+      final index = selected['index'].toString();
+      AppLogger.info(
+        'network-route',
+        'Windows 自动绑定物理出口；ifIndex=$index，名称=${selected['name']}，'
+            '描述=${selected['description']}，metric=${selected['metric']}，'
+            '速率=${selected['speed']}',
+      );
+      return index;
+    } on PlatformCapabilityException {
+      rethrow;
     } catch (error, stack) {
-      // 防火墙规则失败不应阻止本就允许 UDP 的系统继续连接，但必须可诊断。
-      AppLogger.warning('permission', 'Windows UDP 防火墙规则配置失败: $error', stack);
+      AppLogger.warning(
+        'network-route',
+        'Windows 自动选择物理网卡失败，将由系统路由: $error',
+        stack,
+      );
+      return null;
     }
+  }
+
+  static String _formatWindowsInterfaces(List<Map<String, dynamic>> items) {
+    if (items.isEmpty) return '[]';
+    return items
+        .map(
+          (item) =>
+              '{ifIndex=${item['index']},name=${item['name']},'
+              'description=${item['description']},metric=${item['metric'] ?? '-'}}',
+        )
+        .join(', ');
+  }
+
+  static List<Map<String, dynamic>> _asWindowsInterfaceList(Object? value) {
+    if (value is Map<String, dynamic>) return <Map<String, dynamic>>[value];
+    if (value is List<dynamic>) {
+      return value.whereType<Map<String, dynamic>>().toList(growable: false);
+    }
+    return const <Map<String, dynamic>>[];
   }
 }
