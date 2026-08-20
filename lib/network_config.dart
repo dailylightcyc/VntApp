@@ -176,7 +176,9 @@ class NetworkConfig {
   factory NetworkConfig.fromJson(Map<String, dynamic> json) {
     final storedAddress = (json['server_address'] as String).trim();
     final lowerAddress = storedAddress.toLowerCase();
-    final migrateDefaultServerToUdp =
+    // 当前默认 VNTS 只在 UDP 控制通道上完成 VNT 握手。旧版本曾把
+    // Windows 配置迁成 tcp://，TCP 虽能建立 socket，但服务端会立即断开。
+    final migrateUnsupportedDefaultTcp =
         lowerAddress == 'tcp://47.108.138.177:29872' ||
         lowerAddress == 'tcp://vnt.wherewego.top:29872';
     return NetworkConfig(
@@ -185,7 +187,7 @@ class NetworkConfig {
       token: json['token'],
       deviceName: json['name'],
       virtualIPv4: json['ip'],
-      serverAddress: migrateDefaultServerToUdp
+      serverAddress: migrateUnsupportedDefaultTcp
           ? storedAddress.substring('tcp://'.length)
           : storedAddress,
       stunServers: List<String>.from(json['stun_server']),
@@ -194,7 +196,9 @@ class NetworkConfig {
       portMappings: List<String>.from(json['mapping']),
       groupPassword: json['password'],
       isServerEncrypted: json['server_encrypt'],
-      protocol: migrateDefaultServerToUdp ? 'UDP' : json['protocol'] ?? 'UDP',
+      protocol: migrateUnsupportedDefaultTcp
+          ? 'UDP'
+          : json['protocol'] ?? 'UDP',
       dataFingerprintVerification: json['finger'],
       encryptionAlgorithm: json['cipher_model'],
       deviceID: json['device_id'],

@@ -185,7 +185,11 @@ class VntBox {
         uiCall.send('success');
       },
       createTunFn: (info) {
-        // uiCall.send(info);
+        AppLogger.info(
+          'vpn',
+          '独立虚拟网卡创建成功；配置=${config.configName}；'
+              '网卡=${info.name}；驱动版本=${info.version.isEmpty ? '未知' : info.version}',
+        );
       },
       connectFn: (info) {
         uiCall.send(info);
@@ -337,7 +341,8 @@ class VntManager {
       final effectiveConfig = _effectiveConfig(config);
       AppLogger.info(
         'connection',
-        '开始连接；配置=${config.configName}，服务器=${effectiveConfig.serverAddress}',
+        '开始连接；配置=${config.configName}，协议=${effectiveConfig.protocol}，'
+            '服务器=${effectiveConfig.serverAddress}',
       );
 
       await PlatformCapabilityService.prepareForConnection();
@@ -372,15 +377,23 @@ class VntManager {
     final address = config.serverAddress.trim();
     final lowerAddress = address.toLowerCase();
     final isDefaultServer =
+        lowerAddress == '47.108.138.177:29872' ||
+        lowerAddress == 'vnt.wherewego.top:29872' ||
         lowerAddress == 'tcp://47.108.138.177:29872' ||
         lowerAddress == 'tcp://vnt.wherewego.top:29872';
     if (!isDefaultServer) return config;
 
-    final udpAddress = address.substring('tcp://'.length);
-    AppLogger.warning(
-      'connection',
-      '检测到默认服务器的 TCP 配置，自动切换为已验证可用的 UDP；服务器=$udpAddress',
-    );
+    // 该默认 VNTS 的 TCP 端口可建立连接，但不会处理 VNT TCP 握手并会
+    // early EOF。统一使用已经在 Linux/Android 验证成功的 UDP 控制通道。
+    final udpAddress = lowerAddress.startsWith('tcp://')
+        ? address.substring('tcp://'.length)
+        : address;
+    if (udpAddress != address || config.protocol.toUpperCase() != 'UDP') {
+      AppLogger.warning(
+        'connection',
+        '默认服务器不支持 VNT TCP 控制通道，已使用 UDP；服务器=$udpAddress',
+      );
+    }
     return config.copyWith(serverAddress: udpAddress, protocol: 'UDP');
   }
 

@@ -16,12 +16,21 @@ class PlatformCapabilityService {
 
   static const int _capNetAdmin = 12;
   static PlatformCapabilityException? _linuxStartupFailure;
+  static bool _windowsFirewallPrepared = false;
 
   /// Linux 授权由原生 Runner 在 Flutter 引擎启动前完成；
   /// Dart 层只负责记录和给出可诊断的错误。
   static Future<void> prepareAtStartup() async {
     if (!Platform.isLinux) return;
     try {
+      final bootstrapError =
+          Platform.environment['VNT_PERMISSION_BOOTSTRAP_ERROR'];
+      if (bootstrapError != null && bootstrapError.isNotEmpty) {
+        throw PlatformCapabilityException(
+          'PolicyKit 授权后无法赋予临时网络能力：$bootstrapError。'
+          '详细记录见 linux-bootstrap.log。',
+        );
+      }
       await _verifyLinuxCapability();
       _linuxStartupFailure = null;
     } on PlatformCapabilityException catch (error) {
@@ -37,6 +46,7 @@ class PlatformCapabilityService {
       await _verifyLinuxCapability();
     } else if (Platform.isWindows) {
       await _verifyWindowsAdministrator();
+      await _prepareWindowsFirewall();
     } else {
       AppLogger.info('permission', '平台使用系统 VPN 授权或既有 macOS 授权流程');
     }
@@ -88,5 +98,46 @@ class PlatformCapabilityService {
       throw const PlatformCapabilityException('应用没有创建虚拟网卡的管理员权限，请以管理员身份重新启动。');
     }
     AppLogger.info('permission', 'Windows 管理员权限检查通过');
+  }
+
+  static Future<void> _prepareWindowsFirewall() async {
+    if (_windowsFirewallPrepared) return;
+    final executable = Platform.resolvedExecutable.replaceAll("'", "''");
+    const inboundName = 'VNT App UDP Inbound';
+    const outboundName = 'VNT App UDP Outbound';
+    final script = <String>[
+      r"$ErrorActionPreference='Stop'",
+      "\$program='$executable'",
+      for (final rule in <(String, String)>[
+        (inboundName, 'Inbound'),
+        (outboundName, 'Outbound'),
+      ]) ...<String>[
+        "\$rule=Get-NetFirewallRule -DisplayName '${rule.$1}' -ErrorAction SilentlyContinue",
+        "if(\$null -eq \$rule){New-NetFirewallRule -DisplayName '${rule.$1}' -Direction ${rule.$2} -Action Allow -Enabled True -Profile Any -Protocol UDP -Program \$program | Out-Null}else{\$rule | Set-NetFirewallRule -Direction ${rule.$2} -Action Allow -Enabled True -Profile Any; \$rule | Get-NetFirewallApplicationFilter | Set-NetFirewallApplicationFilter -Program \$program}",
+      ],
+    ].join(';');
+    try {
+      final result = await Process.run('powershell.exe', <String>[
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        script,
+      ]);
+      if (result.exitCode != 0) {
+        throw ProcessException(
+          'powershell.exe',
+          const <String>[],
+          '${result.stderr}'.trim(),
+          result.exitCode,
+        );
+      }
+      _windowsFirewallPrepared = true;
+      AppLogger.info('permission', 'Windows 当前程序 UDP 防火墙规则检查通过');
+    } catch (error, stack) {
+      // 防火墙规则失败不应阻止本就允许 UDP 的系统继续连接，但必须可诊断。
+      AppLogger.warning('permission', 'Windows UDP 防火墙规则配置失败: $error', stack);
+    }
   }
 }

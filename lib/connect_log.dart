@@ -902,17 +902,28 @@ class _LogPageState extends State<LogPage> {
           }
         });
       } else {
-        // Windows/macOS/Linux 平台使用文件选择器
+        // Linux 授权启动链会让部分 xdg-desktop-portal 将进程根路径解析为
+        // /proc/<pid>/root，进而拒绝文件选择器请求。直接保存到下载目录。
         final timestamp = DateTime.now().millisecondsSinceEpoch;
         final fileName = 'vnt_logs_$timestamp.txt';
 
-        // 让用户选择保存位置
-        String? savePath = await FilePicker.saveFile(
-          dialogTitle: '保存日志文件',
-          fileName: fileName,
-          type: FileType.custom,
-          allowedExtensions: ['txt'],
-        );
+        String? savePath;
+        if (Platform.isLinux) {
+          final downloads = await getDownloadsDirectory();
+          final home = Platform.environment['HOME'] ?? Directory.current.path;
+          final directory =
+              downloads ?? Directory(path.join(home, 'Downloads'));
+          await directory.create(recursive: true);
+          savePath = path.join(directory.path, fileName);
+        } else {
+          // Windows/macOS 使用原生文件选择器。
+          savePath = await FilePicker.saveFile(
+            dialogTitle: '保存日志文件',
+            fileName: fileName,
+            type: FileType.custom,
+            allowedExtensions: ['txt'],
+          );
+        }
 
         if (savePath == null) {
           if (mounted) {
