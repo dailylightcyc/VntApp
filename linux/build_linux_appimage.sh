@@ -18,23 +18,24 @@ apt-get install -y --no-install-recommends --no-install-suggests \
     apt-get install -f -y
   }
 
-step "安装 Flutter 3.24.5"
-git clone --depth 1 --branch 3.24.5 \
+step "安装 Flutter 3.44.9"
+git clone --depth 1 --branch 3.44.9 \
   https://github.com/flutter/flutter.git /opt/flutter
 export PATH="/opt/flutter/bin:$PATH"
 flutter precache --linux
 flutter --version
 
-step "安装 Rust 1.77.2（强制固定，禁止升级）"
+step "安装 Rust stable"
 export CARGO_HOME=/opt/cargo
 export RUSTUP_HOME=/opt/rustup
 export PATH="/opt/cargo/bin:$PATH"
 curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | \
-  sh -s -- -y --default-toolchain 1.77.2 --no-modify-path \
+  sh -s -- -y --default-toolchain stable --no-modify-path \
     --no-update-default-toolchain
 rustup set auto-self-update disable
-rustup default 1.77.2
+rustup default stable
 rustc -V
+cargo -V
 
 step "构建 Flutter Linux Release"
 flutter config --no-analytics

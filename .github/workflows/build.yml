@@ -31,7 +31,7 @@ jobs:
 
           - NAME: vntApp-android
             OS: ubuntu-latest
-            flutter-version: 3.22.0
+            flutter-version: 3.44.9
 
           - NAME: vntApp-windows
             OS: windows-2022
@@ -39,25 +39,25 @@ jobs:
 
           - NAME: vntApp-macOS
             OS: macos-latest
-            flutter-version: 3.24.5
+            flutter-version: 3.44.9
 
           - NAME: vntApp-IOS
             OS: macos-14
-            flutter-version: 3.24.5
+            flutter-version: 3.44.9
 
           - NAME: vntApp-linux-x86_64
             OS: ubuntu-latest
-            flutter-version: 3.24.5
+            flutter-version: 3.44.9
             DOCKER_PLATFORM: linux/amd64
-            DOCKER_IMAGE: ubuntu:18.04
+            DOCKER_IMAGE: ubuntu:20.04
             APPIMAGE_ARCH: x86_64
             BUNDLE_DIR: build/linux/x64/release/bundle
 
           #- NAME: vntApp-linux-arm64
           #  OS: ubuntu-latest
-          #  flutter-version: 3.24.5
+          #  flutter-version: 3.44.9
           #  DOCKER_PLATFORM: linux/arm64
-          #  DOCKER_IMAGE: arm64v8/ubuntu:18.04
+          #  DOCKER_IMAGE: arm64v8/ubuntu:20.04
           #  APPIMAGE_ARCH: aarch64
           #  BUNDLE_DIR: build/linux/arm64/release/bundle
 
@@ -423,7 +423,5 @@ jobs:
           path: ./artifacts
       - name: List
         run: find ./artifacts
-
-
 
 
